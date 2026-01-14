@@ -19,6 +19,8 @@ import UnsubscribePage from './pages/UnsubscribePage'
 import SchoolPictures from './pages/SchoolPictures'
 import TermsAndConditions from './pages/TermsAndConditions'
 import TermsOfService from './pages/TermsOfService'
+import SchoolRegistrationTest from './pages/SchoolRegistrationTest'
+import PaymentCallback from './pages/PaymentCallback'
 
 function App() {
   const { isAuthenticated, user } = useAuthStore()
@@ -38,6 +40,8 @@ function App() {
       <Route path="/terms" element={<TermsAndConditions />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />
       <Route path="/unsubscribe" element={<UnsubscribePage />} />
+      <Route path="/register-test" element={<SchoolRegistrationTest />} />
+      <Route path="/onboarding/payment-callback" element={<PaymentCallback />} />
       
       {isAuthenticated ? (
         <Route path="/app" element={<Layout />}>
