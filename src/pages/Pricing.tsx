@@ -169,16 +169,110 @@ export default function Pricing() {
             ))}
           </div>
 
-          {/* FAQ Link */}
-          <div className="mt-16 text-center">
-            <p className="text-gray-600">
-              Have questions?{' '}
-              <Link to="/faq" className="font-semibold text-primary-600 hover:text-primary-700">
-                Check our FAQ
-              </Link>{' '}
-              or contact us at sales@schoolos.co.za
+          {/* Pricing FAQ Section */}
+          <div className="mt-20">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900">Frequently Asked Questions</h2>
+              <p className="mt-3 text-lg text-gray-600">Everything you need to know about our pricing</p>
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-2">
+              {/* FAQ Items */}
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  What payment methods do you accept?
+                </h3>
+                <p className="text-gray-600">
+                  We accept all major credit and debit cards, EFT, and bank transfers through our secure payment gateway powered by Paystack.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Can I change plans later?
+                </h3>
+                <p className="text-gray-600">
+                  Yes! You can upgrade or downgrade your plan at any time. Changes take effect at the start of your next billing cycle.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Is there a free trial available?
+                </h3>
+                <p className="text-gray-600">
+                  Yes, we offer a 14-day free trial on all plans. No credit card required to start your trial.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  What happens if I exceed my plan limits?
+                </h3>
+                <p className="text-gray-600">
+                  We'll notify you when you're approaching your limits. You can upgrade to a higher plan or we'll work with you to find a custom solution.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Do you offer discounts for annual payments?
+                </h3>
+                <p className="text-gray-600">
+                  Yes! Pay annually and save 10% on all plans. Contact us for a custom quote for your school.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Is my school's data secure?
+                </h3>
+                <p className="text-gray-600">
+                  Absolutely. We use bank-level encryption and comply with South African data protection regulations. Your data is backed up daily.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  What support do I get?
+                </h3>
+                <p className="text-gray-600">
+                  All plans include email support. Professional plans get priority support, and Enterprise includes a dedicated account manager with 24/7 availability.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Can I cancel anytime?
+                </h3>
+                <p className="text-gray-600">
+                  Yes, you can cancel your subscription at any time. No cancellation fees. Your data remains accessible for 30 days after cancellation.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Section */}
+          <div className="mt-16 text-center bg-primary-50 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Still have questions?</h3>
+            <p className="text-gray-600 mb-6">
+              Our team is here to help you choose the right plan for your school
             </p>
-            <p className="mt-3 text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <a
+                href="mailto:sales@schoolos.co.za"
+                className="inline-block rounded-lg bg-primary-600 px-6 py-3 font-semibold text-white hover:bg-primary-700"
+              >
+                Contact Sales
+              </a>
+              <Link
+                to="/faq"
+                className="inline-block rounded-lg border-2 border-primary-600 px-6 py-3 font-semibold text-primary-600 hover:bg-primary-50"
+              >
+                View Full FAQ
+              </Link>
+            </div>
+            <p className="mt-6 text-sm text-gray-600">
               <Link to="/terms" className="text-primary-600 hover:text-primary-700">
                 View Terms & Conditions
               </Link>
