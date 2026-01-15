@@ -4,6 +4,11 @@ import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
+import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import EmailSent from './pages/EmailSent'
+import VerifyEmail from './pages/VerifyEmail'
 import Dashboard from './pages/Dashboard'
 import Students from './pages/Students'
 import Staff from './pages/Staff'
@@ -35,6 +40,11 @@ function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+      <Route path="/email-sent" element={<EmailSent />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/terms" element={<TermsAndConditions />} />

@@ -63,9 +63,14 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 type="password"
                 value={password}
@@ -84,8 +89,16 @@ export default function Login() {
             </button>
           </form>
           
-          <div className="mt-6 border-t pt-6 text-center text-sm text-gray-600">
-            <p>Need help? Contact support@schoolos.co.za</p>
+          <div className="mt-6 border-t pt-6 text-center text-sm">
+            <p className="text-gray-600 mb-4">
+              Don't have an account?{' '}
+              <Link to="/register" className="font-medium text-primary-600 hover:text-primary-700">
+                Sign up
+              </Link>
+            </p>
+            <p className="text-gray-500 text-xs">
+              Need help? Contact support@schoolos.co.za
+            </p>
           </div>
         </div>
       </div>
