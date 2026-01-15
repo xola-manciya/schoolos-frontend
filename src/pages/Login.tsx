@@ -3,14 +3,12 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { AcademicCapIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
-import { User } from '../types'
 
 export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [selectedRole, setSelectedRole] = useState<User['role']>('ADMIN')
   const [loading, setLoading] = useState(false)
-  const { mockLogin } = useAuthStore()
+  const { login } = useAuthStore()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: FormEvent) => {
@@ -18,15 +16,9 @@ export default function Login() {
     setLoading(true)
 
     try {
-      // Mock login - no backend call for now
-      mockLogin(selectedRole)
-      toast.success(`Logged in as ${selectedRole}!`)
+      await login(username, password)
+      toast.success('Login successful!')
       navigate('/app')
-      
-      // TODO: Uncomment when backend is ready
-      // await login(username, password)
-      // toast.success('Login successful!')
-      // navigate('/app')
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Login failed')
     } finally {
@@ -81,24 +73,6 @@ export default function Login() {
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
                 required
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Login as (Demo)
-              </label>
-              <select
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as User['role'])}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
-              >
-                <option value="ADMIN">Admin</option>
-                <option value="PRINCIPAL">Principal</option>
-                <option value="TEACHER">Teacher</option>
-                <option value="ACCOUNTANT">Accountant</option>
-                <option value="PAYMENT_PROCESSOR">Payment Processor</option>
-                <option value="SUPPORT">Support Staff</option>
-              </select>
             </div>
 
             <button

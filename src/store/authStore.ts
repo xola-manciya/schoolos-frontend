@@ -7,7 +7,6 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   login: (username: string, password: string) => Promise<void>
-  mockLogin: (role: User['role']) => void
   logout: () => void
   fetchUser: () => Promise<void>
 }
@@ -28,20 +27,6 @@ export const useAuthStore = create<AuthState>()(
         // Fetch user details
         const userResponse = await api.get('/staff/users/me/')
         set({ user: userResponse.data, isAuthenticated: true })
-      },
-
-      mockLogin: (role: User['role']) => {
-        const mockUser: User = {
-          id: 1,
-          username: 'demo_user',
-          email: 'demo@school.com',
-          first_name: 'Demo',
-          last_name: 'User',
-          role: role,
-          phone_number: '0123456789'
-        }
-        localStorage.setItem('access_token', 'mock_token_123')
-        set({ user: mockUser, isAuthenticated: true })
       },
 
       logout: () => {
