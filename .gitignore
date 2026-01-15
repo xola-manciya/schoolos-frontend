@@ -12,10 +12,9 @@ dist/
 build/
 *.local
 
-# Environment Variables (NEVER COMMIT)
+# Environment Variables (NEVER COMMIT - INCLUDING EXAMPLES)
 .env
 .env.*
-!.env.example
 
 # Logs
 logs/
