@@ -5,7 +5,7 @@ export default function Pricing() {
   const plans = [
     {
       name: 'Starter',
-      price: 'R2,999',
+      price: 'R350',
       period: '/month',
       description: 'Perfect for small schools getting started',
       features: [
@@ -26,7 +26,7 @@ export default function Pricing() {
     },
     {
       name: 'Professional',
-      price: 'R5,999',
+      price: 'R750',
       period: '/month',
       description: 'Ideal for growing educational institutions',
       features: [
@@ -46,7 +46,7 @@ export default function Pricing() {
       popular: true,
     },
     {
-      name: 'Enterprise',
+      name: 'Premium',
       price: 'Custom',
       period: '',
       description: 'For large schools with advanced needs',
