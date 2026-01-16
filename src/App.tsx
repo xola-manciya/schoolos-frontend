@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import { useAuthStore } from './store/authStore'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -37,24 +38,25 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
-      <Route path="/email-sent" element={<EmailSent />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route path="/pricing" element={<Pricing />} />
-      <Route path="/faq" element={<FAQ />} />
-      <Route path="/terms" element={<TermsAndConditions />} />
-      <Route path="/terms-of-service" element={<TermsOfService />} />
-      <Route path="/unsubscribe" element={<UnsubscribePage />} />
-      <Route path="/register-test" element={<SchoolRegistrationTest />} />
-      <Route path="/onboarding/payment-callback" element={<PaymentCallback />} />
-      
-      {isAuthenticated ? (
-        <Route path="/app" element={<Layout />}>
+    <HelmetProvider>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+        <Route path="/email-sent" element={<EmailSent />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/unsubscribe" element={<UnsubscribePage />} />
+        <Route path="/register-test" element={<SchoolRegistrationTest />} />
+        <Route path="/onboarding/payment-callback" element={<PaymentCallback />} />
+        
+        {isAuthenticated ? (
+          <Route path="/app" element={<Layout />}>
           <Route index element={getDefaultDashboard()} />
           <Route 
             path="dashboard" 
@@ -129,10 +131,11 @@ function App() {
             } 
           />
         </Route>
-      ) : (
-        <Route path="/app/*" element={<Navigate to="/login" replace />} />
-      )}
-    </Routes>
+        ) : (
+          <Route path="/app/*" element={<Navigate to="/login" replace />} />
+        )}
+      </Routes>
+    </HelmetProvider>
   )
 }
 

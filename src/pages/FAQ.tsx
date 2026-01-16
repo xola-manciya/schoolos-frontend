@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { SEO } from '../components/SEO'
 import { AcademicCapIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 
 export default function FAQ() {
@@ -116,6 +117,12 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50">
+      <SEO 
+        title="FAQ - Frequently Asked Questions About SchoolOS"
+        description="Get answers to common questions about SchoolOS school management software. Learn about features, pricing, implementation, security, and support. Find everything you need to know."
+        keywords="school management FAQ, SchoolOS questions, school software help, education software FAQ, school management support"
+        canonical="https://schoolos.pages.dev/faq"
+      />
       {/* Navigation */}
       <nav className="fixed top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

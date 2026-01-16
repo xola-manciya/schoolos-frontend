@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { SEO } from '../components/SEO'
 import {
   AcademicCapIcon,
   UserGroupIcon,
@@ -73,6 +74,12 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50">
+      <SEO 
+        title="SchoolOS - Modern School Management Platform for South African Schools"
+        description="Streamline your school operations with SchoolOS. Comprehensive management system for students, staff, payments, and reporting. Starting at R350/month with 1-month free trial. Trusted by 500+ schools in South Africa."
+        keywords="school management system, student management software, staff management, school administration, education software, South Africa school software, payment tracking, school ERP, student records, SchoolOS"
+        canonical="https://schoolos.pages.dev/"
+      />
       {/* Navigation */}
       <nav className="fixed top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
