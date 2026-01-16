@@ -3,7 +3,7 @@
 
   <!-- Home Page -->
   <url>
-    <loc>/</loc>
+    <loc>https://schoolos.co.za/</loc>
     <lastmod>2026-01-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -11,7 +11,7 @@
 
   <!-- Pricing Page -->
   <url>
-    <loc>/pricing</loc>
+    <loc>https://schoolos.co.za/pricing</loc>
     <lastmod>2026-01-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
@@ -19,7 +19,7 @@
 
   <!-- FAQ Page -->
   <url>
-    <loc>/faq</loc>
+    <loc>https://schoolos.co.za/faq</loc>
     <lastmod>2026-01-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -27,7 +27,7 @@
 
   <!-- Login Page -->
   <url>
-    <loc>/login</loc>
+    <loc>https://schoolos.co.za/login</loc>
     <lastmod>2026-01-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -35,7 +35,7 @@
 
   <!-- Register Page -->
   <url>
-    <loc>/register</loc>
+    <loc>https://schoolos.co.za/register</loc>
     <lastmod>2026-01-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>

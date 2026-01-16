@@ -12,11 +12,11 @@ export function SEO({
   title = 'SchoolOS - Modern School Management Platform',
   description = 'Streamline your school operations with SchoolOS. Comprehensive school management system for student records, staff management, payment tracking, and reporting.',
   keywords = 'school management system, student management software, staff management, school administration, education software',
-  ogImage = 'https://schoolos.pages.dev/og-image.png',
+  ogImage = 'https://schoolos.co.za/og-image.png',
   canonical,
 }: SEOProps) {
   const fullTitle = title.includes('SchoolOS') ? title : `${title} | SchoolOS`
-  const url = canonical || 'https://schoolos.pages.dev'
+  const url = canonical || 'https://schoolos.co.za'
 
   return (
     <Helmet>
