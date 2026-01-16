@@ -56,9 +56,10 @@ export default function TermsOfService() {
             
             <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3.1 Trial Period</h3>
             <ul className="list-disc pl-6 text-gray-700 space-y-1">
-              <li>New customers receive a <strong>14-day free trial</strong> upon registration</li>
-              <li>Credit card or payment method required at registration (not charged during trial)</li>
-              <li>Trial converts to paid subscription automatically after 14 days unless cancelled</li>
+              <li>New customers receive a <strong>1-month (30-day) free trial</strong> upon registration</li>
+              <li>No credit card required during trial period</li>
+              <li>Export features (Excel/CSV) are disabled during trial</li>
+              <li>Trial converts to paid subscription automatically after 30 days unless cancelled</li>
               <li><strong>One trial per organization</strong> - email address, school name, and phone number are tracked to prevent abuse</li>
             </ul>
 

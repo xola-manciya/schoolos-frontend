@@ -124,9 +124,9 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="mb-4 text-2xl font-bold text-gray-900">4. Free Trial</h2>
               <p className="mb-3 text-gray-700">
-                We offer a 30-day free trial for new customers. No credit card is required to start your trial. 
+                We offer a 1-month (30-day) free trial for new customers. No credit card is required to start your trial. 
                 At the end of the trial period, you must subscribe to a paid plan to continue using the Service. 
-                Trial accounts may have limited features compared to paid subscriptions.
+                Trial accounts have limited features including disabled export functionality (Excel/CSV exports).
               </p>
             </section>
 

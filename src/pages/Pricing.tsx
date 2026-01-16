@@ -201,7 +201,7 @@ export default function Pricing() {
                   Is there a free trial available?
                 </h3>
                 <p className="text-gray-600">
-                  Yes, we offer a 14-day free trial on all plans. No credit card required to start your trial.
+                  Yes, we offer a 1-month free trial on all plans. No credit card required to start your trial. Note: Export features are disabled during the trial period.
                 </p>
               </div>
 
