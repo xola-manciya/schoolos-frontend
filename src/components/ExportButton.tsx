@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import * as XLSX from 'xlsx'
+import { useAuthStore } from '../store/authStore'
 
 interface ExportButtonProps {
   data: any[]
@@ -10,6 +11,10 @@ interface ExportButtonProps {
 
 export function ExportButton({ data, filename, headers }: ExportButtonProps) {
   const [showMenu, setShowMenu] = useState(false)
+  const user = useAuthStore((state) => state.user)
+  
+  // Check if user is on trial
+  const isTrial = user?.is_trial || false
 
   const exportToCSV = () => {
     if (!data || data.length === 0) {
@@ -65,11 +70,23 @@ export function ExportButton({ data, filename, headers }: ExportButtonProps) {
   return (
     <div className="relative">
       <button
-        onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        onClick={() => {
+          if (isTrial) {
+            alert('Export functionality is not available during the trial period. Please upgrade to a paid plan.')
+            return
+          }
+          setShowMenu(!showMenu)
+        }}
+        disabled={isTrial}
+        className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+          isTrial
+            ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+        }`}
+        title={isTrial ? 'Export not available during trial' : 'Export data'}
       >
         <ArrowDownTrayIcon className="h-5 w-5" />
-        Export
+        Export {isTrial && '(Trial)'}
       </button>
 
       {showMenu && (

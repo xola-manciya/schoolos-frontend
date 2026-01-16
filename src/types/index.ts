@@ -7,6 +7,7 @@ export interface User {
   role: 'PRINCIPAL' | 'ADMIN' | 'TEACHER' | 'ACCOUNTANT' | 'SUPPORT' | 'PAYMENT_PROCESSOR'
   phone_number?: string
   school?: School
+  is_trial?: boolean
 }
 
 export interface School {
