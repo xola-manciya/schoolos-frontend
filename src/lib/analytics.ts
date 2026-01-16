@@ -32,7 +32,7 @@ export const trackEvent = (eventName: string, eventParams?: Record<string, any>)
  */
 export const trackPageView = (path: string) => {
   if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('config', 'GA_MEASUREMENT_ID', {
+    window.gtag('config', 'G-P888X4E800', {
       page_path: path,
     })
   }
