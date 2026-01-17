@@ -2,7 +2,10 @@ import axios from 'axios'
 
 // API Configuration
 const API_VERSION = 'v1'
-const BASE_URL = `/api/${API_VERSION}`
+// Use environment variable for production, fallback to proxy for development
+const BASE_URL = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/${API_VERSION}`
+  : `/api/${API_VERSION}`
 
 const api = axios.create({
   baseURL: BASE_URL,

@@ -8,7 +8,7 @@ export default function Pricing() {
   const plans = [
     {
       name: 'Starter',
-      price: 'R350',
+      price: 'R500',
       period: '/month',
       description: 'Perfect for small schools getting started',
       features: [
@@ -75,7 +75,7 @@ export default function Pricing() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50">
       <SEO 
         title="Pricing Plans - Affordable School Management Software"
-        description="Choose the perfect SchoolOS plan for your school. Starting at R350/month with 1-month free trial. Flexible pricing for schools of all sizes. No hidden fees, cancel anytime."
+        description="Choose the perfect SchoolOS plan for your school. Starting at R500/month with 1-month free trial. Flexible pricing for schools of all sizes. No hidden fees, cancel anytime."
         keywords="school management pricing, education software cost, school software pricing, affordable school management, SchoolOS pricing, South Africa school software prices"
         canonical="https://schoolos.co.za/pricing"
       />
@@ -84,7 +84,7 @@ export default function Pricing() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <img src="/logo.png" alt="SchoolOS" className="h-8 w-8" />
+              <AcademicCapIcon className="h-8 w-8 text-primary-600" />
               <span className="text-xl font-bold text-gray-900">SchoolOS</span>
             </Link>
             

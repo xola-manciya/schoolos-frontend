@@ -70,8 +70,8 @@ export default function LandingPage() {
   ]
 
   const stats = [
-    { label: 'Students Managed', value: '10,000+' },
-    { label: 'Payments Processed', value: 'R50M+' },
+    { label: 'Schools', value: '500+' },
+    { label: 'Active Users', value: '10,000+' },
     { label: 'Time Saved', value: '1000+ hrs' },
     { label: 'User Satisfaction', value: '99%' },
   ]
@@ -80,7 +80,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50">
       <SEO 
         title="SchoolOS - Modern School Management Platform for South African Schools"
-        description="Streamline your school operations with SchoolOS. Comprehensive management system for students, staff, payments, and reporting. Starting at R350/month with 1-month free trial. Trusted by 500+ schools in South Africa."
+        description="Streamline your school operations with SchoolOS. Comprehensive management system for students, staff, payments, and reporting. Starting at R500/month with 1-month free trial. Trusted by 500+ schools in South Africa."
         keywords="school management system, student management software, staff management, school administration, education software, South Africa school software, payment tracking, school ERP, student records, SchoolOS"
         canonical="https://schoolos.co.za/"
       />
@@ -89,7 +89,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="SchoolOS" className="h-8 w-8" />
+              <AcademicCapIcon className="h-8 w-8 text-primary-600" />
               <span className="text-xl font-bold text-gray-900">SchoolOS</span>
             </div>
             

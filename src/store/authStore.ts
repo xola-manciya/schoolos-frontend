@@ -6,7 +6,7 @@ import { User } from '../types'
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
-  login: (username: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<void>
   logout: () => void
   fetchUser: () => Promise<void>
 }
@@ -17,8 +17,8 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
 
-      login: async (username: string, password: string) => {
-        const response = await api.post('/auth/token/', { username, password })
+      login: async (email: string, password: string) => {
+        const response = await api.post('/auth/token/', { email, password })
         const { access, refresh } = response.data
 
         localStorage.setItem('access_token', access)
