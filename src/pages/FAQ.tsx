@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SEO } from '../components/SEO'
-import { AcademicCapIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { AcademicCapIcon, ChevronDownIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const faqs = [
     {
@@ -128,10 +129,15 @@ export default function FAQ() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <AcademicCapIcon className="h-8 w-8 text-primary-600" />
+              <img src="/logo.png" alt="SchoolOS" className="h-8 w-8" />
               <span className="text-xl font-bold text-gray-900">SchoolOS</span>
             </Link>
-            <div className="flex items-center gap-4">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
+              <Link to="/" className="text-gray-700 hover:text-primary-600">
+                Home
+              </Link>
               <Link to="/pricing" className="text-gray-700 hover:text-primary-600">
                 Pricing
               </Link>
@@ -142,7 +148,48 @@ export default function FAQ() {
                 Sign In
               </Link>
             </div>
+            
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden rounded-lg p-2 text-gray-700 hover:bg-gray-100"
+            >
+              {mobileMenuOpen ? (
+                <XMarkIcon className="h-6 w-6" />
+              ) : (
+                <Bars3Icon className="h-6 w-6" />
+              )}
+            </button>
           </div>
+          
+          {/* Mobile menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-gray-200 bg-white py-4">
+              <div className="flex flex-col space-y-4">
+                <Link
+                  to="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-gray-700 hover:text-primary-600 px-4 py-2"
+                >
+                  Home
+                </Link>
+                <Link
+                  to="/pricing"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-gray-700 hover:text-primary-600 px-4 py-2"
+                >
+                  Pricing
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mx-4 rounded-lg bg-primary-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-primary-700"
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 

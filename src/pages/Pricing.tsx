@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { SEO } from '../components/SEO'
-import { CheckIcon, XMarkIcon, AcademicCapIcon } from '@heroicons/react/24/outline'
+import { useState } from 'react'
+import { CheckIcon, XMarkIcon, AcademicCapIcon, Bars3Icon, XMarkIcon as XIcon } from '@heroicons/react/24/outline'
 
 export default function Pricing() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const plans = [
     {
       name: 'Starter',
@@ -82,12 +84,17 @@ export default function Pricing() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <AcademicCapIcon className="h-8 w-8 text-primary-600" />
+              <img src="/logo.png" alt="SchoolOS" className="h-8 w-8" />
               <span className="text-xl font-bold text-gray-900">SchoolOS</span>
             </Link>
-            <div className="flex items-center gap-4">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
               <Link to="/" className="text-gray-700 hover:text-primary-600">
                 Home
+              </Link>
+              <Link to="/faq" className="text-gray-700 hover:text-primary-600">
+                FAQ
               </Link>
               <Link
                 to="/login"
@@ -96,7 +103,48 @@ export default function Pricing() {
                 Sign In
               </Link>
             </div>
+            
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden rounded-lg p-2 text-gray-700 hover:bg-gray-100"
+            >
+              {mobileMenuOpen ? (
+                <XIcon className="h-6 w-6" />
+              ) : (
+                <Bars3Icon className="h-6 w-6" />
+              )}
+            </button>
           </div>
+          
+          {/* Mobile menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-gray-200 bg-white py-4">
+              <div className="flex flex-col space-y-4">
+                <Link
+                  to="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-gray-700 hover:text-primary-600 px-4 py-2"
+                >
+                  Home
+                </Link>
+                <Link
+                  to="/faq"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-gray-700 hover:text-primary-600 px-4 py-2"
+                >
+                  FAQ
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mx-4 rounded-lg bg-primary-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-primary-700"
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -287,6 +335,74 @@ export default function Pricing() {
           </div>
         </div>
       </div>
+      
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Product</h3>
+              <ul className="mt-4 space-y-2">
+                <li>
+                  <a href="#features" className="text-gray-600 hover:text-primary-600">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <Link to="/pricing" className="text-gray-600 hover:text-primary-600">
+                    Pricing
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Support</h3>
+              <ul className="mt-4 space-y-2">
+                <li>
+                  <Link to="/faq" className="text-gray-600 hover:text-primary-600">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <a href="mailto:support@schoolos.co.za" className="text-gray-600 hover:text-primary-600">
+                    Contact
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Legal</h3>
+              <ul className="mt-4 space-y-2">
+                <li>
+                  <Link to="/terms" className="text-gray-600 hover:text-primary-600">
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms-of-service" className="text-gray-600 hover:text-primary-600">
+                    Terms of Service
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Company</h3>
+              <ul className="mt-4 space-y-2">
+                <li>
+                  <Link to="/" className="text-gray-600 hover:text-primary-600">
+                    About
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-8 border-t border-gray-200 pt-8">
+            <p className="text-center text-gray-600">
+              &copy; 2026 SchoolOS. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
