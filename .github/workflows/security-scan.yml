@@ -1,0 +1,211 @@
+name: Frontend Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly security scan every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create security reports directory
+        run: mkdir -p security-reports
+
+      # pnpm audit - Check for vulnerable dependencies
+      - name: Run pnpm Audit
+        continue-on-error: true
+        run: |
+          pnpm audit --json > security-reports/pnpm-audit.json || true
+          pnpm audit > security-reports/pnpm-audit.txt || true
+
+      # ESLint security plugin scan
+      - name: Run ESLint Security Scan
+        continue-on-error: true
+        run: |
+          pnpm exec eslint . --ext .ts,.tsx,.js,.jsx -f json -o security-reports/eslint-report.json || true
+          pnpm exec eslint . --ext .ts,.tsx,.js,.jsx > security-reports/eslint-report.txt || true
+
+      # TypeScript type checking
+      - name: TypeScript Type Check
+        continue-on-error: true
+        run: |
+          pnpm exec tsc --noEmit --pretty false > security-reports/typescript-check.txt 2>&1 || true
+
+      # Detect hardcoded secrets
+      - name: Detect Secrets
+        uses: trufflesecurity/trufflehog@main
+        continue-on-error: true
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --json --no-update --only-verified
+
+      # Snyk Security Scan
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --json-file-output=security-reports/snyk-report.json
+
+      # Build check to catch compilation issues
+      - name: Build Check
+        continue-on-error: true
+        run: |
+          pnpm run build > security-reports/build-check.txt 2>&1 || true
+
+      # Upload security reports as artifacts
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: security-reports/
+          retention-days: 30
+
+      # Check for critical vulnerabilities
+      - name: Check for Critical Vulnerabilities
+        id: check-vulns
+        run: |
+          critical_count=0
+          
+          # Check pnpm audit
+          if [ -f security-reports/pnpm-audit.json ]; then
+            critical_count=$(jq '[.advisories[] | select(.severity == "critical" or .severity == "high")] | length' security-reports/pnpm-audit.json 2>/dev/null || echo "0")
+          fi
+          
+          if [ "$critical_count" -gt 0 ]; then
+            echo "critical_found=true" >> $GITHUB_OUTPUT
+            echo "critical_count=$critical_count" >> $GITHUB_OUTPUT
+          else
+            echo "critical_found=false" >> $GITHUB_OUTPUT
+            echo "critical_count=0" >> $GITHUB_OUTPUT
+          fi
+
+      # Create GitHub Issue for critical vulnerabilities
+      - name: Create Issue for Critical Vulnerabilities
+        if: steps.check-vulns.outputs.critical_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const auditReport = fs.existsSync('security-reports/pnpm-audit.txt') 
+              ? fs.readFileSync('security-reports/pnpm-audit.txt', 'utf8') 
+              : 'No audit report available';
+            const eslintReport = fs.existsSync('security-reports/eslint-report.txt')
+              ? fs.readFileSync('security-reports/eslint-report.txt', 'utf8')
+              : 'No ESLint report available';
+            
+            const issueBody = `## 🚨 Critical Security Vulnerabilities Detected (Frontend)
+            
+            **Scan Date:** ${new Date().toISOString()}
+            **Branch:** ${context.ref}
+            **Commit:** ${context.sha}
+            **Critical Vulnerabilities:** ${process.env.CRITICAL_COUNT}
+            
+            ### pnpm Audit Results
+            \`\`\`
+            ${auditReport.slice(0, 5000)}
+            \`\`\`
+            
+            ### ESLint Security Issues
+            \`\`\`
+            ${eslintReport.slice(0, 3000)}
+            \`\`\`
+            
+            **Action Required:** Please review and address these vulnerabilities immediately.
+            
+            **Recommended Actions:**
+            1. Run \`pnpm audit --fix\` to auto-fix vulnerabilities
+            2. Update vulnerable dependencies manually if needed
+            3. Review ESLint security warnings
+            
+            [View Full Security Reports](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Critical Security Vulnerabilities Detected (Frontend)',
+              body: issueBody,
+              labels: ['security', 'critical', 'automated', 'frontend']
+            });
+        env:
+          CRITICAL_COUNT: ${{ steps.check-vulns.outputs.critical_count }}
+
+      # Fail the build if critical vulnerabilities are found
+      - name: Fail on Critical Vulnerabilities
+        if: steps.check-vulns.outputs.critical_found == 'true' && github.event_name == 'pull_request'
+        run: |
+          echo "::error::${{ steps.check-vulns.outputs.critical_count }} critical security vulnerabilities detected!"
+          exit 1
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          deny-licenses: GPL-3.0, AGPL-3.0
+
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

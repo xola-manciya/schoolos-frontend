@@ -1,0 +1,53 @@
+# Pre-commit hooks for Frontend Security Scanning
+# Install: npm install -g pre-commit or use npx
+# Setup: pre-commit install (or use husky)
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Check for secrets/credentials
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: 'package-lock.json|pnpm-lock.yaml|node_modules'
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: detect-private-key
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  # TypeScript/JavaScript linting
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint Security Check
+        entry: pnpm exec eslint --ext .ts,.tsx,.js,.jsx --max-warnings=0
+        language: system
+        types: [file]
+        files: \.(ts|tsx|js|jsx)$
+        pass_filenames: true
+
+      - id: typescript-check
+        name: TypeScript Type Check
+        entry: pnpm exec tsc --noEmit
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: npm-audit
+        name: NPM Audit Security Check
+        entry: pnpm audit --audit-level=moderate
+        language: system
+        pass_filenames: false
+        always_run: true

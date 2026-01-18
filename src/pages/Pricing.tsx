@@ -5,78 +5,63 @@ import { CheckIcon, XMarkIcon, AcademicCapIcon, Bars3Icon, XMarkIcon as XIcon } 
 
 export default function Pricing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
+  
   const plans = [
     {
       name: 'Starter',
-      price: 'R600',
-      period: '/month',
-      description: 'Perfect for small schools getting started',
+      price: billingCycle === 'monthly' ? 'R12' : 'R10',
+      period: billingCycle === 'monthly' ? '/learner/month' : '/learner/month (billed annually)',
+      description: 'Simple, transparent pricing that scales with your school',
       features: [
-        { name: 'Up to 200 students', included: true },
-        { name: 'Up to 10 staff members', included: true },
-        { name: 'Payment processing', included: true },
-        { name: 'Basic reporting', included: true },
-        { name: 'Email support', included: true },
-        { name: 'Monthly payment tracking', included: true },
+        { name: 'Unlimited learners (up to 1,000)', included: true },
+        { name: 'Unlimited staff members', included: true },
+        { name: 'Payment processing & tracking', included: true },
+        { name: 'Advanced reporting & analytics', included: true },
+        { name: 'Excel/CSV exports (even on trial)', included: true },
         { name: 'Staff leave management', included: true },
-        { name: 'Excel/CSV exports', included: true },
-        { name: 'Advanced analytics', included: false },
-        { name: 'Custom branding', included: false },
-        { name: 'Priority support', included: false },
-        { name: 'API access', included: false },
-      ],
-      popular: false,
-    },
-    {
-      name: 'Professional',
-      price: 'R1,500',
-      period: '/month',
-      description: 'Ideal for growing educational institutions',
-      features: [
-        { name: 'Up to 500 students', included: true },
-        { name: 'Up to 30 staff members', included: true },
-        { name: 'Payment processing', included: true },
-        { name: 'Advanced reporting', included: true },
+        { name: 'Parent portal access', included: true },
+        { name: 'Email & SMS notifications', included: true },
+        { name: 'Custom branding', included: true },
         { name: 'Priority email support', included: true },
         { name: 'Monthly payment tracking', included: true },
-        { name: 'Staff leave management', included: true },
-        { name: 'Excel/CSV exports', included: true },
-        { name: 'Advanced analytics', included: true },
-        { name: 'Custom branding', included: true },
-        { name: 'Phone support', included: true },
-        { name: 'API access', included: false },
-      ],
-      popular: true,
-    },
-    {
-      name: 'Premium',
-      price: 'Custom',
-      period: '',
-      description: 'For large schools with advanced needs',
-      features: [
-        { name: 'Unlimited students', included: true },
-        { name: 'Unlimited staff members', included: true },
-        { name: 'Payment processing', included: true },
-        { name: 'Advanced reporting', included: true },
-        { name: '24/7 dedicated support', included: true },
-        { name: 'Monthly payment tracking', included: true },
-        { name: 'Staff leave management', included: true },
-        { name: 'Excel/CSV exports', included: true },
-        { name: 'Advanced analytics', included: true },
-        { name: 'Custom branding', included: true },
-        { name: 'Dedicated account manager', included: true },
         { name: 'API access', included: true },
       ],
+      popular: true,
+      example: billingCycle === 'monthly' 
+        ? '500 learners = R6,000/month' 
+        : '500 learners = R5,000/month (save R12,000/year)',
+    },
+    {
+      name: 'Enterprise',
+      price: 'Custom',
+      period: '',
+      description: 'For schools with 1,000+ learners',
+      features: [
+        { name: '1,000+ learners', included: true },
+        { name: 'Volume discounts available', included: true },
+        { name: 'All Starter features included', included: true },
+        { name: 'Dedicated account manager', included: true },
+        { name: '24/7 priority support', included: true },
+        { name: 'Custom integrations', included: true },
+        { name: 'Advanced security features', included: true },
+        { name: 'Custom training & onboarding', included: true },
+        { name: 'Service level agreement (SLA)', included: true },
+        { name: 'Multi-campus support', included: true },
+        { name: 'Dedicated infrastructure', included: true },
+        { name: 'White-label options', included: true },
+      ],
       popular: false,
+      isEnterprise: true,
     },
   ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50">
       <SEO 
-        title="Pricing Plans - Affordable School Management Software"
-        description="Choose the perfect SchoolOS plan for your school. Starting at R600/month with 1-month free trial. Flexible pricing for schools of all sizes. No hidden fees, cancel anytime."
-        keywords="school management pricing, education software cost, school software pricing, affordable school management, SchoolOS pricing, South Africa school software prices"
+        title="Pricing - R12 per Learner | Simple School Management Software"
+        description="Transparent per-learner pricing starting at R12/month or R10/month annually. All features included. 30-day free trial. Pay only for active learners. No hidden fees."
+        keywords="school management pricing per learner, education software cost, R12 per student, affordable school management, SchoolOS pricing, South Africa school software prices, per learner pricing"
         canonical="https://schoolos.co.za/pricing"
       />
       {/* Navigation */}
@@ -156,12 +141,33 @@ export default function Pricing() {
               Simple, Transparent Pricing
             </h1>
             <p className="mt-4 text-xl text-gray-600">
-              Choose the perfect plan for your school. No hidden fees.
+              Pay only for active learners. All features included. No hidden fees.
             </p>
+            
+            {/* Billing Toggle */}
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <span className={`text-lg font-medium ${billingCycle === 'monthly' ? 'text-gray-900' : 'text-gray-500'}`}>
+                Monthly
+              </span>
+              <button
+                onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
+                className="relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                style={{ backgroundColor: billingCycle === 'annual' ? '#2563eb' : '#d1d5db' }}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className={`text-lg font-medium ${billingCycle === 'annual' ? 'text-gray-900' : 'text-gray-500'}`}>
+                Annual <span className="text-sm text-green-600 font-semibold">(Save 17%)</span>
+              </span>
+            </div>
           </div>
 
           {/* Pricing Cards */}
-          <div className="mt-16 grid gap-8 lg:grid-cols-3">
+          <div className="mt-16 grid gap-8 lg:grid-cols-2 max-w-5xl mx-auto">
             {plans.map((plan) => (
               <div
                 key={plan.name}
@@ -189,17 +195,20 @@ export default function Pricing() {
                     </span>
                     <span className="ml-1 text-xl text-gray-600">{plan.period}</span>
                   </div>
+                  {plan.example && (
+                    <p className="mt-3 text-sm text-gray-600">{plan.example}</p>
+                  )}
                 </div>
 
                 <Link
-                  to="/login"
+                  to={plan.isEnterprise ? '/contact' : '/login'}
                   className={`mb-8 rounded-lg px-6 py-3 text-center font-semibold ${
                     plan.popular
-                      ? 'bg-gradient-to-r from-primary-600 to-blue-600 text-white hover:shadow-xl'
-                      : 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50'
+                      ? 'block w-full bg-primary-600 text-white hover:bg-primary-700'
+                      : 'block w-full border-2 border-gray-300 bg-white text-gray-900 hover:border-primary-600'
                   }`}
                 >
-                  Get Started
+                  {plan.isEnterprise ? 'Contact Sales' : 'Get Started'}
                 </Link>
 
                 <ul className="space-y-4">
@@ -235,19 +244,19 @@ export default function Pricing() {
               {/* FAQ Items */}
               <div className="bg-white rounded-lg p-6 shadow-md">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  What payment methods do you accept?
+                  How does per-learner pricing work?
                 </h3>
                 <p className="text-gray-600">
-                  We accept all major credit and debit cards, EFT, and bank transfers through our secure payment gateway powered by Paystack.
+                  You only pay for active learners in your system. If a learner leaves, you stop paying. Monthly billing at R12/learner or annual at R10/learner (17% savings).
                 </p>
               </div>
 
               <div className="bg-white rounded-lg p-6 shadow-md">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  Can I change plans later?
+                  What if I have more than 1,000 learners?
                 </h3>
                 <p className="text-gray-600">
-                  Yes! You can upgrade or downgrade your plan at any time. Changes take effect at the start of your next billing cycle.
+                  Contact our sales team for custom enterprise pricing with volume discounts, dedicated support, and advanced features.
                 </p>
               </div>
 
@@ -262,19 +271,19 @@ export default function Pricing() {
 
               <div className="bg-white rounded-lg p-6 shadow-md">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  What happens if I exceed my plan limits?
+                  Can I switch between monthly and annual billing?
                 </h3>
                 <p className="text-gray-600">
-                  We'll notify you when you're approaching your limits. You can upgrade to a higher plan or we'll work with you to find a custom solution.
+                  Yes! You can switch to annual billing anytime to save 17%. Changes take effect at your next renewal date.
                 </p>
               </div>
 
               <div className="bg-white rounded-lg p-6 shadow-md">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  Do you offer discounts for annual payments?
+                  Are all features included?
                 </h3>
                 <p className="text-gray-600">
-                  Yes! Pay annually and save 10% on all plans. Contact us for a custom quote for your school.
+                  Yes! All features including exports, analytics, custom branding, and API access are included in the Starter plan. Even trial users can export data.
                 </p>
               </div>
 
