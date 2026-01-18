@@ -1,10 +1,9 @@
 export interface User {
   id: number
-  username: string
   email: string
   first_name: string
   last_name: string
-  role: 'PRINCIPAL' | 'ADMIN' | 'TEACHER' | 'ACCOUNTANT' | 'SUPPORT' | 'PAYMENT_PROCESSOR'
+  role: 'PRINCIPAL' | 'ADMIN' | 'HOD' | 'TEACHER' | 'CLERK' | 'ACCOUNTANT' | 'SUPPORT' | 'PAYMENT_PROCESSOR'
   phone_number?: string
   school?: School
   is_trial?: boolean
@@ -26,6 +25,8 @@ export interface School {
   max_students: number
   max_staff: number
   storage_gb: number
+  payment_months_per_year: number
+  payment_start_month: number
   days_until_expiry?: number
 }
 
@@ -89,6 +90,8 @@ export interface Payment {
   match_type: 'STUDENT_ID' | 'NAME_MATCH' | 'FUZZY_MATCH' | 'REFERENCE' | 'MANUAL'
   match_confidence: number
   status: 'PENDING' | 'VERIFIED' | 'REVERSED'
+  bank_statement_file?: string
+  bank_statement_filename?: string
 }
 
 export interface StaffProfile {

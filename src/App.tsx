@@ -27,6 +27,8 @@ import TermsAndConditions from './pages/TermsAndConditions'
 import TermsOfService from './pages/TermsOfService'
 import SchoolRegistrationTest from './pages/SchoolRegistrationTest'
 import PaymentCallback from './pages/PaymentCallback'
+import Billing from './pages/Billing'
+import Profile from './pages/Profile'
 
 function App() {
   const { isAuthenticated, user } = useAuthStore()
@@ -58,6 +60,7 @@ function App() {
         {isAuthenticated ? (
           <Route path="/app" element={<Layout />}>
           <Route index element={getDefaultDashboard()} />
+          <Route path="payment-success" element={<PaymentCallback />} />
           <Route 
             path="dashboard" 
             element={
@@ -130,6 +133,15 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="billing" 
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL']}>
+                <Billing />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="profile" element={<Profile />} />
         </Route>
         ) : (
           <Route path="/app/*" element={<Navigate to="/login" replace />} />

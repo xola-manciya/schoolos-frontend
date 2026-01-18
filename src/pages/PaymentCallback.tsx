@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { useAuthStore } from '../store/authStore'
 
 export default function PaymentCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuthStore()
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying')
   const [message, setMessage] = useState('')
   const [schoolData, setSchoolData] = useState<any>(null)
+  const [isSubscription, setIsSubscription] = useState(false)
 
   useEffect(() => {
     const reference = searchParams.get('reference') || searchParams.get('trxref')
+    const isSubPayment = window.location.pathname.includes('payment-success')
+    setIsSubscription(isSubPayment)
     
     if (!reference) {
       setStatus('error')
@@ -30,10 +35,14 @@ export default function PaymentCallback() {
           setMessage(response.data.message)
           setSchoolData(response.data.school)
           
-          // Redirect to login after 5 seconds
+          // Redirect based on context
           setTimeout(() => {
-            navigate('/login')
-          }, 5000)
+            if (isSubPayment && isAuthenticated) {
+              navigate('/app/dashboard')
+            } else {
+              navigate('/login')
+            }
+          }, 3000)
         } else {
           setStatus('error')
           setMessage(response.data.message || 'Payment verification failed')
@@ -45,7 +54,7 @@ export default function PaymentCallback() {
     }
 
     verifyPayment()
-  }, [searchParams, navigate])
+  }, [searchParams, navigate, isAuthenticated])
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
@@ -105,9 +114,19 @@ export default function PaymentCallback() {
                 <strong>Next Steps:</strong>
               </p>
               <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside space-y-1">
-                <li>Check your email for trial welcome message</li>
-                <li>You'll be redirected to login in 5 seconds</li>
-                <li>Use your school admin credentials to access the system</li>
+                {isSubscription ? (
+                  <>
+                    <li>Check your email for the invoice</li>
+                    <li>You'll be redirected to your dashboard in 3 seconds</li>
+                    <li>Your subscription is now active</li>
+                  </>
+                ) : (
+                  <>
+                    <li>Check your email for trial welcome message</li>
+                    <li>You'll be redirected to login in 3 seconds</li>
+                    <li>Use your school admin credentials to access the system</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>

@@ -26,31 +26,39 @@ type StudentForm = {
 
 export default function Students() {
   const [showModal, setShowModal] = useState(false)
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [uploadMode, setUploadMode] = useState<'single' | 'excel'>('single')
   const [excelFile, setExcelFile] = useState<File | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const queryClient = useQueryClient()
-  const { register, handleSubmit, reset } = useForm<StudentForm>()
+  const { register, handleSubmit, reset, setValue } = useForm<StudentForm>()
 
   const { data: students, isLoading } = useQuery<Student[]>({
     queryKey: ['students'],
     queryFn: async () => {
       const response = await api.get('/students/')
-      return response.data.results || response.data
+      return response.data.results || response.data || []
     },
   })
 
   const createStudentMutation = useMutation({
     mutationFn: async (data: StudentForm) => {
-      await api.post('/students/', data)
+      if (editingStudent) {
+        await api.patch(`/students/${editingStudent.id}/`, data)
+      } else {
+        await api.post('/students/', data)
+      }
     },
     onSuccess: () => {
-      toast.success('Student added successfully!')
+      toast.success(editingStudent ? 'Student updated successfully!' : 'Student added successfully!')
       queryClient.invalidateQueries({ queryKey: ['students'] })
       reset()
+      setEditingStudent(null)
       setShowModal(false)
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to add student')
+      toast.error(error.response?.data?.error || `Failed to ${editingStudent ? 'update' : 'add'} student`)
     },
   })
 
@@ -77,8 +85,68 @@ export default function Students() {
     },
   })
 
+  const deleteStudentMutation = useMutation({
+    mutationFn: async (studentId: number) => {
+      await api.delete(`/students/${studentId}/`)
+    },
+    onSuccess: () => {
+      toast.success('Student deleted successfully!')
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to delete student')
+    },
+  })
+
+  const markPaymentMutation = useMutation({
+    mutationFn: async ({ studentId, amount }: { studentId: number; amount: number }) => {
+      await api.post('/payments/', {
+        student: studentId,
+        amount: amount,
+        payment_method: 'CASH',
+        payment_date: new Date().toISOString().split('T')[0],
+        status: 'VERIFIED',
+      })
+    },
+    onSuccess: () => {
+      toast.success('Payment recorded successfully!')
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      setShowPaymentModal(false)
+      setSelectedStudent(null)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to record payment')
+    },
+  })
+
   const onSubmit = (data: StudentForm) => {
     createStudentMutation.mutate(data)
+  }
+
+  const handleEdit = (student: Student) => {
+    setEditingStudent(student)
+    setValue('student_id', student.student_id)
+    setValue('first_name', student.first_name)
+    setValue('last_name', student.last_name)
+    setValue('id_number', student.id_number || '')
+    setValue('date_of_birth', student.date_of_birth || '')
+    setValue('gender', student.gender)
+    setValue('email', student.email || '')
+    setValue('phone_number', student.phone_number || '')
+    setValue('address', student.address || '')
+    setValue('parent_name', student.parent_name || '')
+    setValue('parent_phone', student.parent_phone || '')
+    setValue('parent_email', student.parent_email || '')
+    setValue('parent_id_number', student.parent_id_number || '')
+    setValue('enrollment_date', student.enrollment_date || '')
+    setValue('total_fees', student.total_fees || 0)
+    setShowModal(true)
+  }
+
+  const handleDelete = (student: Student) => {
+    if (window.confirm(`Are you sure you want to delete ${student.full_name}? This action cannot be undone.`)) {
+      deleteStudentMutation.mutate(student.id)
+    }
   }
 
   const handleExcelUpload = () => {
@@ -167,6 +235,9 @@ export default function Students() {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       Balance Due
                     </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
@@ -197,6 +268,20 @@ export default function Students() {
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                         R {student.balance_due.toLocaleString()}
                       </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm">
+                          <button
+                            onClick={() => handleEdit(student)}
+                            className="text-blue-600 hover:text-blue-800 font-medium mr-4"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(student)}
+                            className="text-red-600 hover:text-red-800 font-medium"
+                          >
+                            Delete
+                          </button>
+                        </td>
                     </tr>
                   ))}
                 </tbody>
@@ -233,35 +318,39 @@ export default function Students() {
         </div>
       )}
 
-      {/* Add Student Modal */}
+      {/* Add/Edit Student Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 sm:p-6">
-            <h2 className="mb-4 text-xl font-bold text-gray-900 sm:text-2xl">Add Student(s)</h2>
+            <h2 className="mb-4 text-xl font-bold text-gray-900 sm:text-2xl">
+              {editingStudent ? 'Edit Student' : 'Add Student(s)'}
+            </h2>
 
-            {/* Mode Selector */}
-            <div className="mb-6 flex gap-2">
-              <button
-                onClick={() => setUploadMode('single')}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium sm:px-4 ${
-                  uploadMode === 'single'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Single Student
-              </button>
-              <button
-                onClick={() => setUploadMode('excel')}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium sm:px-4 ${
-                  uploadMode === 'excel'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Excel Upload
-              </button>
-            </div>
+            {/* Mode Selector - Only show for adding new students */}
+            {!editingStudent && (
+              <div className="mb-6 flex gap-2">
+                <button
+                  onClick={() => setUploadMode('single')}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium sm:px-4 ${
+                    uploadMode === 'single'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Single Student
+                </button>
+                <button
+                  onClick={() => setUploadMode('excel')}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium sm:px-4 ${
+                    uploadMode === 'excel'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Excel Upload
+                </button>
+              </div>
+            )}
 
             {uploadMode === 'excel' ? (
               /* Excel Upload Mode */
@@ -414,6 +503,7 @@ export default function Students() {
                     type="button"
                     onClick={() => {
                       setShowModal(false)
+                      setEditingStudent(null)
                       reset()
                     }}
                     className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300"
@@ -425,7 +515,9 @@ export default function Students() {
                     disabled={createStudentMutation.isPending}
                     className="rounded-lg bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 disabled:opacity-50"
                   >
-                    {createStudentMutation.isPending ? 'Adding...' : 'Add Student'}
+                    {createStudentMutation.isPending 
+                      ? (editingStudent ? 'Updating...' : 'Adding...') 
+                      : (editingStudent ? 'Update Student' : 'Add Student')}
                   </button>
                 </div>
               </form>

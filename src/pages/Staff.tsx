@@ -1,19 +1,44 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import { toast } from 'react-hot-toast'
 import api from '../lib/api'
 import { StaffProfile, Leave } from '../types'
 import { ExportButton } from '../components/ExportButton'
 
 type LeaveFilter = 'all' | 'on-leave' | 'active'
 
+interface StaffForm {
+  email: string
+  first_name: string
+  last_name: string
+  role: 'ADMIN' | 'TEACHER' | 'CLERK' | 'PRINCIPAL' | 'HOD'
+  phone?: string
+  employee_id: string
+  id_number: string
+  date_of_birth?: string
+  gender?: 'M' | 'F' | 'O'
+  address?: string
+  department?: string
+  date_of_joining?: string
+  salary?: number
+}
+
 export default function Staff() {
   const [filter, setFilter] = useState<LeaveFilter>('all')
+  const [showModal, setShowModal] = useState(false)
+  const queryClient = useQueryClient()
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<StaffForm>()
 
   const { data: staffList, isLoading: staffLoading } = useQuery<StaffProfile[]>({
     queryKey: ['staff'],
     queryFn: async () => {
       const response = await api.get('/staff/')
-      return response.data.results || response.data
+      const data = response.data
+      // Handle both array and paginated response
+      if (Array.isArray(data)) return data
+      if (data.results && Array.isArray(data.results)) return data.results
+      return []
     },
   })
 
@@ -21,27 +46,86 @@ export default function Staff() {
     queryKey: ['leaves'],
     queryFn: async () => {
       const response = await api.get('/staff/leaves/')
-      return response.data.results || response.data
+      const data = response.data
+      // Handle both array and paginated response
+      if (Array.isArray(data)) return data
+      if (data.results && Array.isArray(data.results)) return data.results
+      return []
     },
   })
 
   // Get active leaves for filtering
-  const activeLeaves = leaves?.filter(
+  const activeLeaves = (leaves || []).filter(
     leave => leave.status === 'APPROVED' && 
     new Date(leave.start_date) <= new Date() && 
     new Date(leave.end_date) >= new Date()
-  ) || []
+  )
 
   const staffOnLeaveIds = new Set(activeLeaves.map(leave => leave.staff))
 
-  const filteredStaff = staffList?.filter(staff => {
+  const filteredStaff = (Array.isArray(staffList) ? staffList : []).filter(staff => {
     if (filter === 'on-leave') return staffOnLeaveIds.has(staff.id)
     if (filter === 'active') return !staffOnLeaveIds.has(staff.id)
     return true
-  }) || []
+  })
 
   const getStaffLeave = (staffId: number) => {
     return activeLeaves.find(leave => leave.staff === staffId)
+  }
+
+  const createStaffMutation = useMutation({
+    mutationFn: async (data: StaffForm) => {
+      // Generate a secure random password
+      const generatePassword = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*'
+        let password = ''
+        for (let i = 0; i < 12; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length))
+        }
+        return password
+      }
+      
+      const generatedPassword = generatePassword()
+      
+      // Create user first (use email as username since username is optional)
+      const userResponse = await api.post('/staff/users/', {
+        username: data.email.split('@')[0], // Use email prefix as username
+        email: data.email,
+        password: generatedPassword,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        role: data.role,
+        phone: data.phone || '',
+      })
+      
+      // Then create staff profile
+      await api.post('/staff/', {
+        user: userResponse.data.id,
+        employee_id: data.employee_id,
+        id_number: data.id_number,
+        date_of_birth: data.date_of_birth || null,
+        gender: data.gender || 'O',
+        address: data.address || '',
+        department: data.department || '',
+        date_of_joining: data.date_of_joining || new Date().toISOString().split('T')[0],
+        salary: data.salary || 0,
+      })
+      
+      return generatedPassword
+    },
+    onSuccess: (generatedPassword) => {
+      toast.success(`Staff member added successfully! Temporary password has been sent to their email.`)
+      queryClient.invalidateQueries({ queryKey: ['staff'] })
+      setShowModal(false)
+      reset()
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to add staff member')
+    },
+  })
+
+  const onSubmit = (data: StaffForm) => {
+    createStaffMutation.mutate(data)
   }
 
   if (staffLoading) {
@@ -57,7 +141,10 @@ export default function Staff() {
             data={filteredStaff || []} 
             filename="staff" 
           />
-          <button className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700 sm:text-base">
+          <button 
+            onClick={() => setShowModal(true)}
+            className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700 sm:text-base"
+          >
             Add Staff
           </button>
         </div>
@@ -73,7 +160,7 @@ export default function Staff() {
               : 'bg-white text-gray-700 hover:bg-gray-50'
           }`}
         >
-          All ({staffList?.length || 0})
+          All ({Array.isArray(staffList) ? staffList.length : 0})
         </button>
         <button
           onClick={() => setFilter('active')}
@@ -83,7 +170,7 @@ export default function Staff() {
               : 'bg-white text-gray-700 hover:bg-gray-50'
           }`}
         >
-          Active ({(staffList?.length || 0) - staffOnLeaveIds.size})
+          Active ({(Array.isArray(staffList) ? staffList.length : 0) - staffOnLeaveIds.size})
         </button>
         <button
           onClick={() => setFilter('on-leave')}
@@ -244,6 +331,190 @@ export default function Staff() {
               ? 'Get started by adding staff members to your school.' 
               : `No staff members match the "${filter}" filter.`}
           </p>
+        </div>
+      )}
+
+      {/* Add Staff Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 sm:p-6">
+            <h2 className="mb-4 text-xl font-bold text-gray-900 sm:text-2xl">Add Staff Member</h2>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* User Account Details */}
+              <div className="rounded-lg bg-gray-50 p-4">
+                <h3 className="mb-3 font-semibold text-gray-900">Account Details</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email *</label>
+                    <input
+                      type="email"
+                      {...register('email', { required: 'Email is required' })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                    {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
+                    <p className="mt-1 text-xs text-gray-500">A temporary password will be sent to this email</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Role *</label>
+                    <select
+                      {...register('role', { required: 'Role is required' })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    >
+                      <option value="">Select Role</option>
+                      <option value="TEACHER">Teacher</option>
+                      <option value="HOD">Head of Department (HOD)</option>
+                      <option value="CLERK">Clerk</option>
+                      <option value="ADMIN">Admin</option>
+                      <option value="PRINCIPAL">Principal</option>
+                    </select>
+                    {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role.message}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Personal Details */}
+              <div className="rounded-lg bg-gray-50 p-4">
+                <h3 className="mb-3 font-semibold text-gray-900">Personal Details</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">First Name *</label>
+                    <input
+                      type="text"
+                      {...register('first_name', { required: 'First name is required' })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                    {errors.first_name && <p className="mt-1 text-xs text-red-600">{errors.first_name.message}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Last Name *</label>
+                    <input
+                      type="text"
+                      {...register('last_name', { required: 'Last name is required' })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                    {errors.last_name && <p className="mt-1 text-xs text-red-600">{errors.last_name.message}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Employee ID *</label>
+                    <input
+                      type="text"
+                      {...register('employee_id', { required: 'Employee ID is required' })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                    {errors.employee_id && <p className="mt-1 text-xs text-red-600">{errors.employee_id.message}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">ID Number *</label>
+                    <input
+                      type="text"
+                      {...register('id_number', { required: 'ID number is required' })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                    {errors.id_number && <p className="mt-1 text-xs text-red-600">{errors.id_number.message}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input
+                      type="tel"
+                      {...register('phone')}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+                    <input
+                      type="date"
+                      {...register('date_of_birth')}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Gender</label>
+                    <select
+                      {...register('gender')}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">Address</label>
+                    <input
+                      type="text"
+                      {...register('address')}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Employment Details */}
+              <div className="rounded-lg bg-gray-50 p-4">
+                <h3 className="mb-3 font-semibold text-gray-900">Employment Details</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Department</label>
+                    <input
+                      type="text"
+                      {...register('department')}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Date of Joining</label>
+                    <input
+                      type="date"
+                      {...register('date_of_joining')}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">Salary (R)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      {...register('salary', { valueAsNumber: true })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false)
+                    reset()
+                  }}
+                  className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createStaffMutation.isPending}
+                  className="rounded-lg bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {createStaffMutation.isPending ? 'Adding...' : 'Add Staff Member'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

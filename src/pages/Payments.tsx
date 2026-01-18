@@ -16,12 +16,14 @@ type MonthlyPayment = {
 export default function Payments() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState<{ month: string; year: number } | null>(null)
   const queryClient = useQueryClient()
 
   const { data: payments, isLoading } = useQuery<Payment[]>({
     queryKey: ['payments'],
     queryFn: async () => {
-      const response = await api.get('/payments/')
+      const response = await api.get('/payments/list/')
       return response.data.results || response.data
     },
   })
@@ -31,6 +33,14 @@ export default function Payments() {
     queryFn: async () => {
       const response = await api.get('/students/')
       return response.data.results || response.data
+    },
+  })
+
+  const { data: school } = useQuery({
+    queryKey: ['school'],
+    queryFn: async () => {
+      const response = await api.get('/general/schools/me/')
+      return response.data
     },
   })
 
@@ -58,6 +68,32 @@ export default function Payments() {
     },
   })
 
+  const markPaymentMutation = useMutation({
+    mutationFn: async ({ studentId, amount, month, year }: { studentId: number; amount: number; month: string; year: number }) => {
+      // Create payment date for the specific month (use 15th of the month)
+      const monthIndex = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].indexOf(month)
+      const paymentDate = new Date(year, monthIndex, 15)
+      
+      await api.post('/payments/', {
+        student: studentId,
+        amount: amount,
+        payment_method: 'CASH',
+        payment_date: paymentDate.toISOString().split('T')[0],
+        status: 'VERIFIED',
+      })
+    },
+    onSuccess: () => {
+      toast.success('Payment recorded successfully!')
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      setShowPaymentModal(false)
+      setSelectedMonth(null)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to record payment')
+    },
+  })
+
   const handleUpload = () => {
     if (selectedFile) {
       uploadMutation.mutate(selectedFile)
@@ -67,17 +103,29 @@ export default function Payments() {
   // Generate monthly payment status for a student
   const getMonthlyPayments = (studentId: number): MonthlyPayment[] => {
     const currentYear = new Date().getFullYear()
-    const months = [
+    const allMonths = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ]
 
+    // Get payment configuration from school (default to 12 months starting from January)
+    const paymentMonthsCount = school?.payment_months_per_year || 12
+    const startMonth = (school?.payment_start_month || 1) - 1 // Convert to 0-indexed
+
+    // Generate the payment months based on school configuration
+    const paymentMonths = []
+    for (let i = 0; i < paymentMonthsCount; i++) {
+      const monthIndex = (startMonth + i) % 12
+      paymentMonths.push(allMonths[monthIndex])
+    }
+
     const studentPayments = payments?.filter(p => p.student === studentId && p.status === 'VERIFIED') || []
     
-    return months.map((month, index) => {
+    return paymentMonths.map((month) => {
+      const monthIndex = allMonths.indexOf(month)
       const monthPayment = studentPayments.find(p => {
         const paymentDate = new Date(p.payment_date)
-        return paymentDate.getMonth() === index && paymentDate.getFullYear() === currentYear
+        return paymentDate.getMonth() === monthIndex && paymentDate.getFullYear() === currentYear
       })
 
       return {
@@ -140,12 +188,19 @@ export default function Payments() {
 
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12">
             {getMonthlyPayments(selectedStudent).map((monthData) => (
-              <div
+              <button
                 key={monthData.month}
-                className={`rounded-lg border-2 p-2 text-center sm:p-3 ${
+                onClick={() => {
+                  if (!monthData.paid) {
+                    setSelectedMonth({ month: monthData.month, year: monthData.year })
+                    setShowPaymentModal(true)
+                  }
+                }}
+                disabled={monthData.paid}
+                className={`rounded-lg border-2 p-2 text-center sm:p-3 transition-all ${
                   monthData.paid
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-300 bg-gray-50'
+                    ? 'border-green-500 bg-green-50 cursor-default'
+                    : 'border-gray-300 bg-gray-50 hover:bg-blue-50 hover:border-blue-500 cursor-pointer'
                 }`}
               >
                 <div className="text-xs font-medium text-gray-900 sm:text-sm">{monthData.month.slice(0, 3)}</div>
@@ -158,9 +213,9 @@ export default function Payments() {
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-1 text-xs font-semibold text-red-600">Unpaid</div>
+                  <div className="mt-1 text-xs font-semibold text-blue-600">Click to Pay</div>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -177,6 +232,7 @@ export default function Payments() {
                   {students.map((student) => {
                     const monthlyStatus = getMonthlyPayments(student.id)
                     const monthsPaid = monthlyStatus.filter(m => m.paid).length
+                    const totalMonths = school?.payment_months_per_year || 12
 
                     return (
                       <div key={student.id} className="rounded-lg border bg-white p-4">
@@ -187,28 +243,28 @@ export default function Payments() {
                           </div>
                           <span
                             className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                              monthsPaid >= 12
+                              monthsPaid >= totalMonths
                                 ? 'bg-green-100 text-green-800'
-                                : monthsPaid >= 6
+                                : monthsPaid >= totalMonths / 2
                                 ? 'bg-yellow-100 text-yellow-800'
                                 : 'bg-red-100 text-red-800'
                             }`}
                           >
-                            {monthsPaid}/12
+                            {monthsPaid}/{totalMonths}
                           </span>
                         </div>
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-500">Total Fees:</span>
-                            <span className="text-gray-900">R {student.total_fees.toLocaleString()}</span>
+                            <span className="text-gray-900">R {(student.total_fees || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Paid:</span>
-                            <span className="text-gray-900">R {student.amount_paid.toLocaleString()}</span>
+                            <span className="text-gray-900">R {(student.amount_paid || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between border-t pt-1">
                             <span className="font-medium text-gray-700">Balance:</span>
-                            <span className="font-semibold text-gray-900">R {student.balance_due.toLocaleString()}</span>
+                            <span className="font-semibold text-gray-900">R {(student.balance_due || 0).toLocaleString()}</span>
                           </div>
                         </div>
                         <button
@@ -252,6 +308,7 @@ export default function Payments() {
                       {students.map((student) => {
                     const monthlyStatus = getMonthlyPayments(student.id)
                     const monthsPaid = monthlyStatus.filter(m => m.paid).length
+                    const totalMonths = school?.payment_months_per_year || 12
 
                     return (
                       <tr key={student.id} className="hover:bg-gray-50">
@@ -260,25 +317,25 @@ export default function Payments() {
                           <div className="text-xs text-gray-500">{student.student_id}</div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                          R {student.total_fees.toLocaleString()}
+                          R {(student.total_fees || 0).toLocaleString()}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                          R {student.amount_paid.toLocaleString()}
+                          R {(student.amount_paid || 0).toLocaleString()}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                          R {student.balance_due.toLocaleString()}
+                          R {(student.balance_due || 0).toLocaleString()}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm">
                           <span
                             className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                              monthsPaid >= 12
+                              monthsPaid >= totalMonths
                                 ? 'bg-green-100 text-green-800'
-                                : monthsPaid >= 6
+                                : monthsPaid >= totalMonths / 2
                                 ? 'bg-yellow-100 text-yellow-800'
                                 : 'bg-red-100 text-red-800'
                             }`}
                           >
-                            {monthsPaid}/12 months
+                            {monthsPaid}/{totalMonths} months
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm">
@@ -359,6 +416,17 @@ export default function Payments() {
                       <span className="text-gray-500">Match:</span>
                       <span className="text-gray-900">{payment.match_type} ({payment.match_confidence}%)</span>
                     </div>
+                    {payment.bank_statement_file && (
+                      <div className="flex justify-between pt-2">
+                        <a
+                          href={payment.bank_statement_file}
+                          download={payment.bank_statement_filename}
+                          className="text-primary-600 hover:text-primary-800 text-xs font-medium"
+                        >
+                          📄 Download Statement
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -387,6 +455,9 @@ export default function Payments() {
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       Status
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      File
                     </th>
                   </tr>
                 </thead>
@@ -421,6 +492,19 @@ export default function Payments() {
                           {payment.status}
                         </span>
                       </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm">
+                        {payment.bank_statement_file ? (
+                          <a
+                            href={payment.bank_statement_file}
+                            download={payment.bank_statement_filename}
+                            className="text-primary-600 hover:text-primary-800 font-medium"
+                          >
+                            Download
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -445,12 +529,89 @@ export default function Payments() {
                   />
                 </svg>
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No payments</h3>
-                            <p className="mt-1 text-sm text-gray-500">Upload a bank statement to process payments.</p>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )
-            }
+                <p className="mt-1 text-sm text-gray-500">Upload a bank statement to process payments.</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Mark Payment Modal */}
+      {showPaymentModal && selectedStudent && selectedMonth && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6">
+            <h2 className="mb-4 text-xl font-bold text-gray-900">Record Payment</h2>
+            
+            <div className="mb-6 rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-600">Student</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {students?.find(s => s.id === selectedStudent)?.full_name}
+              </p>
+              <p className="mt-2 text-sm text-gray-600">Month</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {selectedMonth.month} {selectedMonth.year}
+              </p>
+              <p className="mt-2 text-sm text-gray-600">Current Balance</p>
+              <p className="text-2xl font-bold text-red-600">
+                R{students?.find(s => s.id === selectedStudent)?.balance_due.toFixed(2)}
+              </p>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              const formData = new FormData(e.currentTarget)
+              const amount = parseFloat(formData.get('amount') as string)
+              const student = students?.find(s => s.id === selectedStudent)
+              if (amount > 0 && student && amount <= student.balance_due) {
+                markPaymentMutation.mutate({ 
+                  studentId: selectedStudent, 
+                  amount,
+                  month: selectedMonth.month,
+                  year: selectedMonth.year
+                })
+              } else {
+                toast.error('Please enter a valid amount')
+              }
+            }}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Amount (R)
+                </label>
+                <input
+                  type="number"
+                  name="amount"
+                  step="0.01"
+                  min="0.01"
+                  max={students?.find(s => s.id === selectedStudent)?.balance_due}
+                  required
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                  placeholder={`Max: R${students?.find(s => s.id === selectedStudent)?.balance_due.toFixed(2)}`}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPaymentModal(false)
+                    setSelectedMonth(null)
+                  }}
+                  className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={markPaymentMutation.isPending}
+                  className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {markPaymentMutation.isPending ? 'Recording...' : 'Record Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

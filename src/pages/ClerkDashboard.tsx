@@ -15,7 +15,7 @@ export default function ClerkDashboard() {
     queryFn: async () => {
       const [studentsRes, paymentsRes] = await Promise.all([
         api.get('/students/'),
-        api.get('/payments/')
+        api.get('/payments/list/')
       ])
       
       const students = studentsRes.data.results || studentsRes.data

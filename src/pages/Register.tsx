@@ -13,6 +13,8 @@ export default function Register() {
     firstName: '',
     lastName: '',
     phoneNumber: '',
+    role: 'TEACHER',
+    schoolName: '',
   })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -35,13 +37,17 @@ export default function Register() {
         first_name: formData.firstName,
         last_name: formData.lastName,
         phone_number: formData.phoneNumber,
+        role: formData.role,
+        school_name: formData.schoolName,
       })
       
-      toast.success('Registration successful! Check your email to verify your account.')
-      navigate('/email-sent')
+      toast.success('Registration successful! Check your email for verification code.')
+      navigate('/verify-email', { state: { email: formData.email } })
     } catch (error: any) {
       const errorMessage = error.response?.data?.email?.[0] || 
                           error.response?.data?.password1?.[0] ||
+                          error.response?.data?.role?.[0] ||
+                          error.response?.data?.school_name?.[0] ||
                           error.response?.data?.detail ||
                           'Registration failed'
       toast.error(errorMessage)
@@ -165,6 +171,38 @@ export default function Register() {
                   placeholder="+27 XX XXX XXXX"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  School Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.schoolName}
+                  onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                  placeholder="Enter your school name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Role
+                </label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                  required
+                >
+                  <option value="PRINCIPAL">Principal</option>
+                  <option value="ADMIN">Administrator</option>
+                  <option value="TEACHER">Teacher</option>
+                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="SUPPORT">Support Staff</option>
+                </select>
               </div>
 
               <div>

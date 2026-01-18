@@ -80,7 +80,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50">
       <SEO 
         title="SchoolOS - Modern School Management Platform for South African Schools"
-        description="Streamline your school operations with SchoolOS. Comprehensive management system for students, staff, payments, and reporting. Starting at R500/month with 1-month free trial. Trusted by 500+ schools in South Africa."
+        description="Streamline your school operations with SchoolOS. Comprehensive management system for students, staff, payments, and reporting. Starting at R600/month with 1-month free trial. Trusted by 500+ schools in South Africa."
         keywords="school management system, student management software, staff management, school administration, education software, South Africa school software, payment tracking, school ERP, student records, SchoolOS"
         canonical="https://schoolos.co.za/"
       />

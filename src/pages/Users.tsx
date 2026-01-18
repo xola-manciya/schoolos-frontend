@@ -9,7 +9,6 @@ import { useSubscription } from '../hooks/useSubscription'
 
 interface User {
   id: number
-  username: string
   email: string
   first_name: string
   last_name: string
@@ -19,7 +18,6 @@ interface User {
 }
 
 type UserForm = {
-  username: string
   email: string
   first_name: string
   last_name: string
@@ -114,7 +112,6 @@ export default function Users() {
   const handleEdit = (user: User) => {
     setEditingUser(user)
     reset({
-      username: user.username,
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
@@ -223,7 +220,7 @@ export default function Users() {
                           <div className="font-medium text-gray-900">
                             {user.first_name} {user.last_name}
                           </div>
-                          <div className="text-sm text-gray-500">@{user.username}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
                         </div>
                       </div>
                     </td>
@@ -279,7 +276,6 @@ export default function Users() {
                 <p className="font-semibold text-gray-900">
                   {user.first_name} {user.last_name}
                 </p>
-                <p className="text-sm text-gray-500">@{user.username}</p>
                 <p className="text-sm text-gray-500">{user.email}</p>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getRoleBadge(user.role)}`}>
@@ -380,18 +376,6 @@ export default function Users() {
                     <p className="mt-1 text-xs text-red-600">{errors.last_name.message}</p>
                   )}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Username</label>
-                <input
-                  {...register('username', { required: 'Required' })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  disabled={!!editingUser}
-                />
-                {errors.username && (
-                  <p className="mt-1 text-xs text-red-600">{errors.username.message}</p>
-                )}
               </div>
 
               <div>

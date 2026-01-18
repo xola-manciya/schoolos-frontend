@@ -1,115 +1,146 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { useState, FormEvent } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { ArrowLeftIcon } from '@heroicons/react/24/outline'
+import toast from 'react-hot-toast'
 import api from '../lib/api'
 
 export default function VerifyEmail() {
-  const [searchParams] = useSearchParams()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [message, setMessage] = useState('')
+  const location = useLocation()
   const navigate = useNavigate()
-  const key = searchParams.get('key')
+  const email = location.state?.email || ''
+  
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [resending, setResending] = useState(false)
 
-  useEffect(() => {
-    const verifyEmail = async () => {
-      if (!key) {
-        setStatus('error')
-        setMessage('Invalid verification link')
-        return
-      }
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
 
-      try {
-        await api.post('/auth/registration/verify-email/', { key })
-        setStatus('success')
-        setMessage('Your email has been verified successfully!')
-        
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate('/login')
-        }, 3000)
-      } catch (error: any) {
-        setStatus('error')
-        setMessage(
-          error.response?.data?.detail || 
-          'Email verification failed. The link may be invalid or expired.'
-        )
-      }
+    try {
+      await api.post('/staff/verify-email/', {
+        email,
+        code,
+      })
+      
+      toast.success('Email verified successfully!')
+      navigate('/login')
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Verification failed'
+      toast.error(errorMessage)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    verifyEmail()
-  }, [key, navigate])
+  const handleResend = async () => {
+    setResending(true)
+
+    try {
+      await api.post('/staff/resend-verification/', {
+        email,
+      })
+      
+      toast.success('Verification code sent! Check your email.')
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Failed to resend code'
+      toast.error(errorMessage)
+    } finally {
+      setResending(false)
+    }
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-white to-primary-50">
-      <div className="w-full max-w-md">
-        <div className="rounded-lg bg-white p-8 shadow-lg text-center">
-          {status === 'loading' && (
-            <>
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600"></div>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Verifying Your Email
-              </h2>
-              <p className="text-gray-600">
-                Please wait while we verify your email address...
-              </p>
-            </>
-          )}
+    <div className="flex min-h-screen">
+      {/* Left side - Background Image */}
+      <div className="hidden lg:block lg:w-1/2 bg-cover bg-center relative"
+           style={{backgroundImage: "url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop')"}}>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-600/90 to-blue-700/90" />
+        <div className="relative z-10 flex h-full flex-col justify-center items-center px-16 text-white text-center">
+          <Link to="/" className="mb-16 inline-flex items-center hover:scale-105 transition-transform duration-300">
+            <img src="/logo.png" alt="SchoolOS" className="h-32 w-auto drop-shadow-2xl" />
+          </Link>
+          <h1 className="text-5xl font-bold leading-tight mb-6">
+            Verify Your Email
+          </h1>
+          <p className="text-xl text-white/90 max-w-md mx-auto">
+            We've sent a 6-digit verification code to your email address.
+          </p>
+        </div>
+      </div>
 
-          {status === 'success' && (
-            <>
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircleIcon className="h-10 w-10 text-green-600" />
+      {/* Right side - Verification Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
+        <div className="w-full max-w-md">
+          <Link
+            to="/register"
+            className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors group lg:hidden"
+          >
+            <ArrowLeftIcon className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Back to registration</span>
+          </Link>
+
+          {/* Mobile Logo */}
+          <Link to="/" className="mb-6 inline-flex items-center lg:hidden">
+            <img src="/logo.png" alt="SchoolOS" className="h-20 w-auto" />
+          </Link>
+
+          <div className="rounded-2xl bg-white p-8 shadow-xl border border-gray-100">
+            <h2 className="text-4xl font-bold text-gray-900 mb-3">
+              Enter Verification Code
+            </h2>
+            <p className="text-gray-600 mb-8">
+              We sent a 6-digit code to <strong>{email}</strong>
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Verification Code
+                </label>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-2xl font-semibold tracking-widest shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                  placeholder="000000"
+                  maxLength={6}
+                  required
+                />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Email Verified!
-              </h2>
-              <p className="text-gray-600 mb-6">
-                {message}
-              </p>
-              <p className="text-sm text-gray-500 mb-6">
-                Redirecting you to login page in 3 seconds...
-              </p>
+
+              <button
+                type="submit"
+                disabled={loading || code.length !== 6}
+                className="w-full rounded-lg bg-primary-600 px-4 py-3 font-semibold text-white shadow-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {loading ? 'Verifying...' : 'Verify Email'}
+              </button>
+
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-2">
+                  Didn't receive the code?
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50"
+                >
+                  {resending ? 'Sending...' : 'Resend Code'}
+                </button>
+              </div>
+            </form>
+
+            <div className="mt-8 text-center">
               <Link
                 to="/login"
-                className="inline-block w-full rounded-md bg-primary-600 px-4 py-2 text-white hover:bg-primary-700"
+                className="text-sm text-gray-600 hover:text-primary-600 transition-colors"
               >
-                Go to Login Now
+                Already verified? <span className="font-semibold">Sign in</span>
               </Link>
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-                <XCircleIcon className="h-10 w-10 text-red-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Verification Failed
-              </h2>
-              <p className="text-gray-600 mb-6">
-                {message}
-              </p>
-              <div className="space-y-3">
-                <Link
-                  to="/register"
-                  className="block w-full rounded-md bg-primary-600 px-4 py-2 text-white hover:bg-primary-700"
-                >
-                  Try Registering Again
-                </Link>
-                <Link
-                  to="/login"
-                  className="block w-full rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
-                >
-                  Back to Login
-                </Link>
-              </div>
-              <p className="mt-6 text-sm text-gray-500">
-                Need help? Contact <a href="mailto:support@schoolos.co.za" className="text-primary-600 hover:text-primary-700">support@schoolos.co.za</a>
-              </p>
-            </>
-          )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,8 +1,7 @@
 import { StaffProfile, User } from '../../types'
 
-const createMockUser = (id: number, username: string, first_name: string, last_name: string, email: string, role: string): User => ({
+const createMockUser = (id: number, first_name: string, last_name: string, email: string, role: string): User => ({
   id,
-  username,
   first_name,
   last_name,
   email,
@@ -13,7 +12,7 @@ const createMockUser = (id: number, username: string, first_name: string, last_n
 export const mockStaff: StaffProfile[] = [
   {
     id: 1,
-    user: createMockUser(1, 'john.doe', 'John', 'Doe', 'john.doe@school.com', 'PRINCIPAL'),
+    user: createMockUser(1, 'John', 'Doe', 'john.doe@school.com', 'PRINCIPAL'),
     employee_id: 'EMP001',
     position: 'Principal',
     department: 'Administration',
@@ -22,7 +21,7 @@ export const mockStaff: StaffProfile[] = [
   },
   {
     id: 2,
-    user: createMockUser(2, 'sarah.johnson', 'Sarah', 'Johnson', 'sarah.johnson@school.com', 'TEACHER'),
+    user: createMockUser(2, 'Sarah', 'Johnson', 'sarah.johnson@school.com', 'TEACHER'),
     employee_id: 'EMP002',
     position: 'Mathematics Teacher',
     department: 'Mathematics',
@@ -31,7 +30,7 @@ export const mockStaff: StaffProfile[] = [
   },
   {
     id: 3,
-    user: createMockUser(3, 'david.williams', 'David', 'Williams', 'david.williams@school.com', 'TEACHER'),
+    user: createMockUser(3, 'David', 'Williams', 'david.williams@school.com', 'TEACHER'),
     employee_id: 'EMP003',
     position: 'English Teacher',
     department: 'Languages',
@@ -40,7 +39,7 @@ export const mockStaff: StaffProfile[] = [
   },
   {
     id: 4,
-    user: createMockUser(4, 'mary.brown', 'Mary', 'Brown', 'mary.brown@school.com', 'TEACHER'),
+    user: createMockUser(4, 'Mary', 'Brown', 'mary.brown@school.com', 'TEACHER'),
     employee_id: 'EMP004',
     position: 'History Teacher',
     department: 'Humanities',
@@ -49,7 +48,7 @@ export const mockStaff: StaffProfile[] = [
   },
   {
     id: 5,
-    user: createMockUser(5, 'peter.smith', 'Peter', 'Smith', 'peter.smith@school.com', 'ACCOUNTANT'),
+    user: createMockUser(5, 'Peter', 'Smith', 'peter.smith@school.com', 'ACCOUNTANT'),
     employee_id: 'EMP005',
     position: 'Accountant',
     department: 'Finance',
@@ -58,7 +57,7 @@ export const mockStaff: StaffProfile[] = [
   },
   {
     id: 6,
-    user: createMockUser(6, 'lisa.taylor', 'Lisa', 'Taylor', 'lisa.taylor@school.com', 'TEACHER'),
+    user: createMockUser(6, 'Lisa', 'Taylor', 'lisa.taylor@school.com', 'TEACHER'),
     employee_id: 'EMP006',
     position: 'Accounting Teacher',
     department: 'Commerce',
@@ -67,7 +66,7 @@ export const mockStaff: StaffProfile[] = [
   },
   {
     id: 7,
-    user: createMockUser(7, 'james.wilson', 'James', 'Wilson', 'james.wilson@school.com', 'TEACHER'),
+    user: createMockUser(7, 'James', 'Wilson', 'james.wilson@school.com', 'TEACHER'),
     employee_id: 'EMP007',
     position: 'Science Teacher',
     department: 'Sciences',
@@ -76,7 +75,7 @@ export const mockStaff: StaffProfile[] = [
   },
   {
     id: 8,
-    user: createMockUser(8, 'emily.davis', 'Emily', 'Davis', 'emily.davis@school.com', 'SUPPORT'),
+    user: createMockUser(8, 'Emily', 'Davis', 'emily.davis@school.com', 'SUPPORT'),
     employee_id: 'EMP008',
     position: 'Administrative Support',
     department: 'Administration',

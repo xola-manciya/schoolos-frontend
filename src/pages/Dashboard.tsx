@@ -13,7 +13,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const [studentsRes, paymentsRes] = await Promise.all([
         api.get('/students/payment_summary/'),
-        api.get('/payments/statistics/'),
+        api.get('/payments/list/statistics/'),
       ])
       return {
         students: studentsRes.data.summary,

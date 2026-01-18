@@ -36,7 +36,7 @@ export default function SchoolPictures() {
     queryKey: ['school-pictures'],
     queryFn: async () => {
       const response = await api.get('/general/pictures/')
-      return response.data
+      return response.data.results || response.data || []
     },
   })
 
