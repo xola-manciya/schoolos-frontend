@@ -106,6 +106,43 @@ export default function FAQ() {
         },
       ],
     },
+    {
+      category: 'Privacy & Security (POPIA)',
+      questions: [
+        {
+          question: 'Is SchoolOS compliant with South African data protection laws?',
+          answer: 'Yes! SchoolOS is fully compliant with POPIA (Protection of Personal Information Act, 2013) and PAIA (Promotion of Access to Information Act, 2000). We are registered with the Information Regulator and have appointed an Information Officer as required by law.',
+        },
+        {
+          question: 'How is student data protected?',
+          answer: 'Student data is classified as "special personal information" under POPIA Section 26 because it concerns children. We use AES-256 encryption at rest, TLS 1.3 encryption in transit, role-based access controls, school data isolation, and comprehensive audit logging. All data is stored securely with ISO 27001 certified providers.',
+        },
+        {
+          question: 'Where is my school data stored?',
+          answer: 'Your data is primarily stored in South Africa (AWS Cape Town region via Neon.tech database). Some third-party services process data internationally (EU, USA) but only with Standard Contractual Clauses (SCCs) and POPIA-equivalent safeguards. You can request 100% South African data localization by contacting our Information Officer.',
+        },
+        {
+          question: 'What are my rights under POPIA?',
+          answer: 'You have the right to: (1) Access your personal information, (2) Request correction of inaccurate data, (3) Request deletion (subject to legal retention), (4) Object to processing for marketing, (5) Receive data in portable format (CSV/Excel export), and (6) Lodge a complaint with the Information Regulator. Contact privacy@schoolos.co.za to exercise these rights.',
+        },
+        {
+          question: 'What cookies and browser storage does SchoolOS use?',
+          answer: 'We use essential cookies and LocalStorage for authentication (JWT tokens with 1-hour expiry for access tokens, 7-day expiry for refresh tokens). We also store subscription status and user preferences. All essential storage is required for the platform to function. See our Privacy Policy for full details.',
+        },
+        {
+          question: 'Do you share our data with third parties?',
+          answer: 'We do NOT sell your data. We only share with trusted service providers necessary to operate the platform: Paystack (payment processing), Render.com (hosting), Neon.tech (database), and Cloudflare (CDN/storage). All processors have Data Processing Agreements (DPAs) and are ISO 27001 / SOC 2 certified.',
+        },
+        {
+          question: 'How long do you keep our data?',
+          answer: 'Payment records and audit logs: 7 years (SARS compliance). Student records: Until graduation + 5 years. Staff records: Employment + 3 years. Bank statements: 90 days after processing (auto-deleted). Session logs: 90 days. Inactive accounts: 2 years before deletion. See our full retention policy in the Privacy Policy.',
+        },
+        {
+          question: 'What happens if there is a data breach?',
+          answer: 'We have an incident response plan. In the unlikely event of a breach, we will notify the Information Regulator within 72 hours and notify affected schools immediately. We will provide details of the breach, potential impact, and remedial actions taken.',
+        },
+      ],
+    },
   ]
 
   // const allQuestions = faqs.flatMap((category, catIndex) =>

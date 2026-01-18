@@ -3,6 +3,7 @@ import { HelmetProvider } from 'react-helmet-async'
 import { useAuthStore } from './store/authStore'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import CookieConsent from './components/CookieConsent'
 import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -25,6 +26,7 @@ import UnsubscribePage from './pages/UnsubscribePage'
 import SchoolPictures from './pages/SchoolPictures'
 import TermsAndConditions from './pages/TermsAndConditions'
 import TermsOfService from './pages/TermsOfService'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import SchoolRegistrationTest from './pages/SchoolRegistrationTest'
 import PaymentCallback from './pages/PaymentCallback'
 import Billing from './pages/Billing'
@@ -41,6 +43,7 @@ function App() {
 
   return (
     <HelmetProvider>
+      <CookieConsent />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
@@ -51,6 +54,7 @@ function App() {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/faq" element={<FAQ />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/unsubscribe" element={<UnsubscribePage />} />
