@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
@@ -82,8 +81,6 @@ const PAYMENT_PLANS: PaymentPlan[] = [
 export default function Billing() {
   const [selectedPlan, setSelectedPlan] = useState<string>('PROFESSIONAL')
   const [processingPayment, setProcessingPayment] = useState(false)
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
   const { user } = useAuthStore()
 
   // Check if redirected due to expired subscription

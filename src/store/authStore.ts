@@ -9,6 +9,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   fetchUser: () => Promise<void>
+  updateUser: (user: User) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -42,6 +43,10 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           set({ user: null, isAuthenticated: false })
         }
+      },
+
+      updateUser: (user: User) => {
+        set({ user })
       },
     }),
     {

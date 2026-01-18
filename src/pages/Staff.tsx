@@ -113,7 +113,7 @@ export default function Staff() {
       
       return generatedPassword
     },
-    onSuccess: (generatedPassword) => {
+    onSuccess: (_generatedPassword) => {
       toast.success(`Staff member added successfully! Temporary password has been sent to their email.`)
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       setShowModal(false)

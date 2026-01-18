@@ -5,6 +5,7 @@ export interface User {
   last_name: string
   role: 'PRINCIPAL' | 'ADMIN' | 'HOD' | 'TEACHER' | 'CLERK' | 'ACCOUNTANT' | 'SUPPORT' | 'PAYMENT_PROCESSOR'
   phone_number?: string
+  phone?: string
   school?: School
   is_trial?: boolean
 }
@@ -69,6 +70,8 @@ export interface Student {
   parent_name: string
   parent_phone: string
   parent_email: string
+  parent_id_number?: string
+  enrollment_date?: string
   class_enrolled?: number
   class_name?: string
   payment_status: 'PAID' | 'PENDING' | 'PARTIAL' | 'OVERDUE'

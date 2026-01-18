@@ -29,8 +29,6 @@ export default function Students() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [uploadMode, setUploadMode] = useState<'single' | 'excel'>('single')
   const [excelFile, setExcelFile] = useState<File | null>(null)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const queryClient = useQueryClient()
   const { register, handleSubmit, reset, setValue } = useForm<StudentForm>()
 
@@ -98,26 +96,25 @@ export default function Students() {
     },
   })
 
-  const markPaymentMutation = useMutation({
-    mutationFn: async ({ studentId, amount }: { studentId: number; amount: number }) => {
-      await api.post('/payments/', {
-        student: studentId,
-        amount: amount,
-        payment_method: 'CASH',
-        payment_date: new Date().toISOString().split('T')[0],
-        status: 'VERIFIED',
-      })
-    },
-    onSuccess: () => {
-      toast.success('Payment recorded successfully!')
-      queryClient.invalidateQueries({ queryKey: ['students'] })
-      setShowPaymentModal(false)
-      setSelectedStudent(null)
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to record payment')
-    },
-  })
+  // Payment mutation - commented out as it's not currently used
+  // const markPaymentMutation = useMutation({
+  //   mutationFn: async ({ studentId, amount }: { studentId: number; amount: number }) => {
+  //     await api.post('/payments/', {
+  //       student: studentId,
+  //       amount: amount,
+  //       payment_method: 'CASH',
+  //       payment_date: new Date().toISOString().split('T')[0],
+  //       status: 'VERIFIED',
+  //     })
+  //   },
+  //   onSuccess: () => {
+  //     toast.success('Payment recorded successfully!')
+  //     queryClient.invalidateQueries({ queryKey: ['students'] })
+  //   },
+  //   onError: (error: any) => {
+  //     toast.error(error.response?.data?.error || 'Failed to record payment')
+  //   },
+  // })
 
   const onSubmit = (data: StudentForm) => {
     createStudentMutation.mutate(data)
