@@ -5,6 +5,7 @@ import api from '../lib/api'
 import { Student } from '../types'
 import toast from 'react-hot-toast'
 import { ExportButton } from '../components/ExportButton'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 type StudentForm = {
   student_id: string
@@ -24,21 +25,33 @@ type StudentForm = {
   total_fees: number
 }
 
+type PaginatedResponse = {
+  count: number
+  next: string | null
+  previous: string | null
+  results: Student[]
+}
+
 export default function Students() {
   const [showModal, setShowModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [uploadMode, setUploadMode] = useState<'single' | 'excel'>('single')
   const [excelFile, setExcelFile] = useState<File | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const queryClient = useQueryClient()
   const { register, handleSubmit, reset, setValue } = useForm<StudentForm>()
 
-  const { data: students, isLoading } = useQuery<Student[]>({
-    queryKey: ['students'],
+  const { data: paginatedData, isLoading } = useQuery<PaginatedResponse>({
+    queryKey: ['students', currentPage, pageSize],
     queryFn: async () => {
-      const response = await api.get('/students/')
-      return response.data.results || response.data || []
+      const response = await api.get(`/students/?page=${currentPage}&page_size=${pageSize}`)
+      return response.data
     },
   })
+
+  const students = paginatedData?.results || []
+  const totalPages = paginatedData ? Math.ceil(paginatedData.count / pageSize) : 1
 
   const createStudentMutation = useMutation({
     mutationFn: async (data: StudentForm) => {
@@ -161,10 +174,7 @@ export default function Students() {
       <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Students</h1>
         <div className="flex gap-2">
-          <ExportButton 
-            data={students || []} 
-            filename="students" 
-          />
+          <ExportButton endpoint="/students/export/" />
           <button
             onClick={() => setShowModal(true)}
             className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700 sm:text-base"
@@ -284,6 +294,73 @@ export default function Students() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            {paginatedData && paginatedData.count > pageSize && (
+              <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                <div className="flex flex-1 justify-between sm:hidden">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                      <span className="font-medium">
+                        {Math.min(currentPage * pageSize, paginatedData.count)}
+                      </span>{' '}
+                      of <span className="font-medium">{paginatedData.count}</span> students
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value))
+                        setCurrentPage(1)
+                      }}
+                      className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                    >
+                      <option value={10}>10 per page</option>
+                      <option value={25}>25 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                    </select>
+                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronLeftIcon className="h-5 w-5" />
+                      </button>
+                      <span className="relative inline-flex items-center border-x-0 border-y border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronRightIcon className="h-5 w-5" />
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </>
       ) : (

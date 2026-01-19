@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast'
 import api from '../lib/api'
 import { StaffProfile, Leave } from '../types'
 import { ExportButton } from '../components/ExportButton'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 type LeaveFilter = 'all' | 'on-leave' | 'active'
 
@@ -137,10 +138,7 @@ export default function Staff() {
       <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Staff Management</h1>
         <div className="flex gap-2">
-          <ExportButton 
-            data={filteredStaff || []} 
-            filename="staff" 
-          />
+          <ExportButton endpoint="/staff/profiles/export/" />
           <button 
             onClick={() => setShowModal(true)}
             className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700 sm:text-base"
