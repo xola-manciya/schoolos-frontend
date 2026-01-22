@@ -13,8 +13,14 @@ RUN npm install -g pnpm
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source files
-COPY . .
+# Copy only necessary source files for build
+# This approach is more secure than COPY . .
+COPY public/ ./public/
+COPY src/ ./src/
+COPY index.html ./
+COPY vite.config.ts tsconfig.json tsconfig.node.json ./
+COPY postcss.config.js tailwind.config.js ./
+COPY nginx.conf ./
 
 # Build the application
 RUN pnpm build

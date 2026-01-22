@@ -9,7 +9,6 @@ import {
 } from '@heroicons/react/24/outline'
 import api from '../lib/api'
 import { ExportButton } from '../components/ExportButton'
-import toast from 'react-hot-toast'
 
 interface SchoolPicture {
   id: number
@@ -30,22 +29,21 @@ export default function SchoolPictures() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const queryClient = useQueryClient()
 
   // Fetch pictures
   const { data: pictures = [], isLoading } = useQuery<SchoolPicture[]>({
     queryKey: ['school-pictures'],
     queryFn: async () => {
-      const response = await api.get('/general/pictures/')
-      return response.data.results || response.data || []
+      const response = await api.get('/api/general/pictures/')
+      return response.data
     },
   })
 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await api.delete(`/general/pictures/${id}/`)
+      await api.delete(`/api/general/pictures/${id}/`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['school-pictures'] })
@@ -66,7 +64,7 @@ export default function SchoolPictures() {
     }
 
     try {
-      await api.post('/general/pictures/bulk-upload/', formData, {
+      await api.post('/api/general/pictures/bulk-upload/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -81,7 +79,7 @@ export default function SchoolPictures() {
       queryClient.invalidateQueries({ queryKey: ['school-pictures'] })
     } catch (error) {
       console.error('Upload failed:', error)
-      toast.error('Failed to upload images. Please try again.')
+      alert('Failed to upload images. Please try again.')
     } finally {
       setUploading(false)
       setUploadProgress(0)
@@ -124,7 +122,7 @@ export default function SchoolPictures() {
         </div>
         <div className="flex gap-3">
           <ExportButton
-            data={pictures}
+            endpoint="/general/school-pictures/export/"
             filename="school-pictures"
           />
           <label className="cursor-pointer rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
@@ -219,7 +217,9 @@ export default function SchoolPictures() {
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  setDeleteConfirm(picture.id)
+                  if (confirm('Delete this picture?')) {
+                    deleteMutation.mutate(picture.id)
+                  }
                 }}
                 className="absolute right-2 top-2 rounded-full bg-red-600 p-1.5 text-white opacity-0 transition-opacity hover:bg-red-700 group-hover:opacity-100"
               >
@@ -292,43 +292,6 @@ export default function SchoolPictures() {
                   Download Original
                 </a>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Dialog */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex-shrink-0">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                  <TrashIcon className="h-6 w-6 text-red-600" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Picture</h3>
-                <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this picture? This action cannot be undone.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 justify-end mt-6">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  deleteMutation.mutate(deleteConfirm)
-                  setDeleteConfirm(null)
-                }}
-                disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-              </button>
             </div>
           </div>
         </div>
