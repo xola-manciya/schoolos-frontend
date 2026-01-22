@@ -705,12 +705,14 @@ export default function Payments() {
       {showBreakdownSidebar && breakdownStudentId && (
         <>
           {/* Overlay */}
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          <button
+            type="button"
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 cursor-default"
             onClick={() => {
               setShowBreakdownSidebar(false)
               setBreakdownStudentId(null)
             }}
+            aria-label="Close payment breakdown"
           />
           
           {/* Sidebar */}
