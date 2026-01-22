@@ -93,8 +93,9 @@ export default function PrivacyPolicy() {
             <div className="bg-white p-4 rounded border border-blue-300">
               <p className="text-gray-900 font-semibold">SchoolOS Information Officer</p>
               <p className="text-gray-700">Email: <a href="mailto:privacy@schoolos.co.za" className="text-primary-600 hover:underline">privacy@schoolos.co.za</a></p>
-              <p className="text-gray-700">Address: [Your Physical Address], South Africa</p>
-              <p className="text-gray-700">Phone: [Your Contact Number]</p>
+              <p className="text-gray-700">Address: 16 HOBE STREET, VILLAGE 1 SOUTH, CAPE TOWN, WESTERN
+CAPE, 7784, South Africa</p>
+              <p className="text-gray-700">Phone: +27 736 43 9458]</p>
             </div>
           </section>
 

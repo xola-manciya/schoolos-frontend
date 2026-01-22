@@ -88,22 +88,22 @@ export default function Staff() {
       
       const generatedPassword = generatePassword()
       
-      // Create user first (use email as username since username is optional)
-      const userResponse = await api.post('/staff/users/', {
-        username: data.email.split('@')[0], // Use email prefix as username
+      // Create user with all fields (user + profile) in one request
+      // The backend UserSerializer now accepts profile fields
+      await api.post('/staff/users/', {
+        // User fields
+        username: data.email.split('@')[0],
         email: data.email,
         password: generatedPassword,
+        password2: generatedPassword,
         first_name: data.first_name,
         last_name: data.last_name,
         role: data.role,
-        phone: data.phone || '',
-      })
-      
-      // Then create staff profile
-      await api.post('/staff/', {
-        user: userResponse.data.id,
+        phone_number: data.phone || '',
+        id_number: data.id_number || '',
+        
+        // StaffProfile fields
         employee_id: data.employee_id,
-        id_number: data.id_number,
         date_of_birth: data.date_of_birth || null,
         gender: data.gender || 'O',
         address: data.address || '',

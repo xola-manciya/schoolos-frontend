@@ -33,6 +33,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
+        localStorage.removeItem('auth-storage')
         set({ user: null, isAuthenticated: false })
       },
 
@@ -41,6 +42,10 @@ export const useAuthStore = create<AuthState>()(
           const response = await api.get('/staff/users/me/')
           set({ user: response.data, isAuthenticated: true })
         } catch (error) {
+          // Clear all auth data on fetch failure
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('auth-storage')
           set({ user: null, isAuthenticated: false })
         }
       },

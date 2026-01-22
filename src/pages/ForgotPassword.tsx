@@ -14,6 +14,21 @@ export default function ForgotPassword() {
     setLoading(true)
 
     try {
+      // First check if email exists
+      try {
+        await api.post('/staff/check-email/', { email })
+      } catch (emailCheckError: any) {
+        if (emailCheckError.response?.status === 404) {
+          toast.error(
+            'This email is not registered with SchoolOS. Please register your school or contact your school administrator.',
+            { duration: 6000 }
+          )
+          setLoading(false)
+          return
+        }
+      }
+
+      // If email exists, send reset email
       await api.post('/auth/password/reset/', { email })
       setSent(true)
       toast.success('Password reset email sent! Check your inbox.')

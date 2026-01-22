@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import api from '../lib/api'
 import { KeyIcon, ShieldCheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import toast from 'react-hot-toast'
 
 interface TwoFactorVerifyProps {
   onSuccess: () => void
@@ -30,7 +31,7 @@ export default function TwoFactorVerify({ onSuccess, onCancel, deviceId }: TwoFa
     onSuccess: (data) => {
       if (data.warning) {
         // Show warning for backup code usage
-        alert(data.warning)
+        toast.warning(data.warning)
       }
       onSuccess()
     },

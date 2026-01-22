@@ -1,15 +1,23 @@
-import { useState, FormEvent } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, FormEvent, useEffect } from 'react'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const location = useLocation()
+  const [email, setEmail] = useState(location.state?.email || '')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuthStore()
   const navigate = useNavigate()
+
+  // Show success message if redirected from verification
+  useEffect(() => {
+    if (location.state?.verified) {
+      toast.success('Email verified! Please login to continue.')
+    }
+  }, [location.state])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -20,7 +28,15 @@ export default function Login() {
       toast.success('Login successful!')
       navigate('/app')
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Login failed')
+      const errorMessage = 
+        error.response?.data?.non_field_errors?.[0] ||
+        error.response?.data?.detail ||
+        error.response?.data?.email?.[0] ||
+        error.response?.data?.password?.[0] ||
+        error.response?.data?.error ||
+        error.message ||
+        'Invalid email or password. Please try again.'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

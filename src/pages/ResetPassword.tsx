@@ -50,12 +50,11 @@ export default function ResetPassword() {
       toast.success('Password reset successful! You can now login.')
       navigate('/login')
     } catch (error: any) {
-      const errorMessage = error.response?.data?.new_password1?.[0] || 
-                          error.response?.data?.new_password2?.[0] ||
-                          error.response?.data?.token?.[0] ||
-                          error.response?.data?.uid?.[0] ||
-                          error.response?.data?.detail ||
-                          'Password reset failed. The link may be invalid or expired.'
+      console.error('Password reset error:', error.response?.data)
+      const errorMessage = error.response?.data?.detail || 
+                          (Array.isArray(error.response?.data?.detail) 
+                            ? error.response?.data?.detail.join(' ') 
+                            : 'Password reset failed. The link may be invalid or expired.')
       toast.error(errorMessage)
     } finally {
       setLoading(false)

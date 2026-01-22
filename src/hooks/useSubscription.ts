@@ -4,12 +4,17 @@ export const useSubscription = () => {
   const { user } = useAuthStore()
   const school = user?.school
 
-  const isActive = school?.is_active && new Date(school.subscription_end) >= new Date()
+  // Platform admins don't have schools and should bypass all checks
+  const isPlatformAdmin = user?.is_platform_admin === true
+  
+  // Check if subscription is active - always true for platform admins
+  const isActive = isPlatformAdmin || (school?.is_active && (!school.subscription_end || new Date(school.subscription_end) >= new Date()))
   
   const isPackageBased = school?.subscription_type === 'PACKAGE'
   const isProductBased = school?.subscription_type === 'PRODUCT'
   
   const canAddStudent = () => {
+    if (isPlatformAdmin) return true
     if (!school || !isActive) return false
     
     // For product-based, would need to check features from API
@@ -18,11 +23,13 @@ export const useSubscription = () => {
   }
   
   const canAddStaff = () => {
+    if (isPlatformAdmin) return true
     if (!school || !isActive) return false
     return school.max_staff === -1 || true // Will be checked on backend
   }
   
   const hasFeature = (featureName: string): boolean => {
+    if (isPlatformAdmin) return true
     if (!school || !isActive) return false
     
     if (isProductBased) {

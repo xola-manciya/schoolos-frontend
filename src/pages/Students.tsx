@@ -39,6 +39,7 @@ export default function Students() {
   const [excelFile, setExcelFile] = useState<File | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [deleteConfirm, setDeleteConfirm] = useState<Student | null>(null)
   const queryClient = useQueryClient()
   const { register, handleSubmit, reset, setValue } = useForm<StudentForm>()
 
@@ -68,8 +69,30 @@ export default function Students() {
       setEditingStudent(null)
       setShowModal(false)
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || `Failed to ${editingStudent ? 'update' : 'add'} student`)
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: any } }
+      const errorData = err.response?.data
+      
+      // Show specific field errors if available
+      if (errorData && typeof errorData === 'object') {
+        const fieldErrors = Object.entries(errorData)
+          .filter(([key]) => key !== 'error' && key !== 'detail')
+          .map(([field, messages]: [string, any]) => {
+            const msgArray = Array.isArray(messages) ? messages : [messages]
+            return `${field}: ${msgArray.join(', ')}`
+          })
+        
+        if (fieldErrors.length > 0) {
+          toast.error(fieldErrors.join('\n'))
+        } else {
+          toast.error(errorData.error || errorData.detail || `Failed to ${editingStudent ? 'update' : 'add'} student`)
+        }
+      } else {
+        toast.error(`Failed to ${editingStudent ? 'update' : 'add'} student`)
+      }
+      
+      // Log full error for debugging
+      console.error('Student creation error:', errorData)
     },
   })
 
@@ -154,9 +177,7 @@ export default function Students() {
   }
 
   const handleDelete = (student: Student) => {
-    if (window.confirm(`Are you sure you want to delete ${student.full_name}? This action cannot be undone.`)) {
-      deleteStudentMutation.mutate(student.id)
-    }
+    setDeleteConfirm(student)
   }
 
   const handleExcelUpload = () => {
@@ -176,7 +197,11 @@ export default function Students() {
         <div className="flex gap-2">
           <ExportButton endpoint="/students/export/" />
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              reset()
+              setEditingStudent(null)
+              setShowModal(true)
+            }}
             className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700 sm:text-base"
           >
             Add Student(s)
@@ -383,7 +408,11 @@ export default function Students() {
           <p className="mt-1 text-sm text-gray-500">Get started by adding a new student.</p>
           <div className="mt-6">
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => {
+                reset()
+                setEditingStudent(null)
+                setShowModal(true)
+              }}
               className="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700"
             >
               Add Student
@@ -450,6 +479,7 @@ export default function Students() {
                   <button
                     onClick={() => {
                       setShowModal(false)
+                      setEditingStudent(null)
                       setExcelFile(null)
                     }}
                     className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300"
@@ -596,6 +626,45 @@ export default function Students() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                  <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Student</h3>
+                <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete <span className="font-semibold">{deleteConfirm.full_name}</span>? This action cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  deleteStudentMutation.mutate(deleteConfirm.id)
+                  setDeleteConfirm(null)
+                }}
+                disabled={deleteStudentMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteStudentMutation.isPending ? 'Deleting...' : 'Delete Student'}
+              </button>
+            </div>
           </div>
         </div>
       )}

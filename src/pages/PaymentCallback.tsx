@@ -26,7 +26,12 @@ export default function PaymentCallback() {
     // Verify payment with backend
     const verifyPayment = async () => {
       try {
-        const response = await axios.post('/api/v1/general/verify-payment/', {
+        // Use different endpoint based on payment type
+        const endpoint = isSubPayment 
+          ? '/api/v1/payments/verify-subscription/'
+          : '/api/v1/general/verify-payment/'
+        
+        const response = await axios.post(endpoint, {
           reference
         })
 
@@ -38,7 +43,8 @@ export default function PaymentCallback() {
           // Redirect based on context
           setTimeout(() => {
             if (isSubPayment && isAuthenticated) {
-              navigate('/app/dashboard')
+              // Reload to refresh school data and then redirect
+              window.location.href = '/app/billing'
             } else {
               navigate('/login')
             }
@@ -90,7 +96,7 @@ export default function PaymentCallback() {
             {schoolData && (
               <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
                 <h3 className="text-sm font-medium text-blue-800 mb-3">
-                  School Details
+                  {isSubscription ? 'Subscription Details' : 'School Details'}
                 </h3>
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -98,13 +104,26 @@ export default function PaymentCallback() {
                     <dd className="text-blue-900">{schoolData.name}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-blue-700 font-medium">Tier:</dt>
+                    <dt className="text-blue-700 font-medium">{isSubscription ? 'Plan' : 'Tier'}:</dt>
                     <dd className="text-blue-900">{schoolData.subscription_tier}</dd>
                   </div>
-                  <div className="flex justify-between">
-                    <dt className="text-blue-700 font-medium">Trial Ends:</dt>
-                    <dd className="text-blue-900">{new Date(schoolData.trial_end_date).toLocaleDateString()}</dd>
-                  </div>
+                  {isSubscription ? (
+                    <>
+                      <div className="flex justify-between">
+                        <dt className="text-blue-700 font-medium">Status:</dt>
+                        <dd className="font-semibold text-green-600">{schoolData.subscription_status}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-blue-700 font-medium">Valid Until:</dt>
+                        <dd className="text-blue-900">{new Date(schoolData.subscription_end).toLocaleDateString()}</dd>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between">
+                      <dt className="text-blue-700 font-medium">Trial Ends:</dt>
+                      <dd className="text-blue-900">{new Date(schoolData.trial_end_date).toLocaleDateString()}</dd>
+                    </div>
+                  )}
                 </dl>
               </div>
             )}
@@ -116,9 +135,10 @@ export default function PaymentCallback() {
               <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside space-y-1">
                 {isSubscription ? (
                   <>
-                    <li>Check your email for the invoice</li>
-                    <li>You'll be redirected to your dashboard in 3 seconds</li>
-                    <li>Your subscription is now active</li>
+                    <li>Check your email for the invoice and receipt</li>
+                    <li>You'll be redirected to billing page in 3 seconds</li>
+                    <li>Your subscription is now active and trial has ended</li>
+                    <li>Access all features without limitations</li>
                   </>
                 ) : (
                   <>

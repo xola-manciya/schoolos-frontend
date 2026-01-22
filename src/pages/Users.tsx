@@ -21,13 +21,13 @@ type UserForm = {
   email: string
   first_name: string
   last_name: string
-  password: string
   role: string
 }
 
 export default function Users() {
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const queryClient = useQueryClient()
   const subscription = useSubscription()
   
@@ -93,17 +93,6 @@ export default function Users() {
   }
 
   const handleAddUser = () => {
-    // Check subscription before allowing add
-    if (!subscription.isActive) {
-      toast.error('Your subscription has expired. Please renew to add users.')
-      return
-    }
-    
-    if (!subscription.hasFeature('staff_management')) {
-      toast.error(subscription.getUpgradeMessage('staff management'))
-      return
-    }
-    
     setEditingUser(null)
     reset({})
     setShowModal(true)
@@ -116,15 +105,12 @@ export default function Users() {
       first_name: user.first_name,
       last_name: user.last_name,
       role: user.role,
-      password: '' // Don't pre-fill password
     })
     setShowModal(true)
   }
 
   const handleDelete = (userId: number) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      deleteUserMutation.mutate(userId)
-    }
+    setDeleteConfirm(userId)
   }
 
   const getRoleBadge = (role: string) => {
@@ -173,7 +159,7 @@ export default function Users() {
           )}
         </div>
         <div className="flex gap-2">
-          <ExportButton data={users} filename="users" />
+          <ExportButton endpoint="/staff/profiles/export" filename="users" />
           <button
             onClick={handleAddUser}
             className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
@@ -348,88 +334,139 @@ export default function Users() {
       {/* User Form Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h3 className="mb-4 text-xl font-bold text-gray-900">
-              {editingUser ? 'Edit User' : 'Add New User'}
-            </h3>
+          <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl">
+            {/* Header */}
+            <div className="border-b border-gray-200 px-6 py-4">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {editingUser ? 'Edit User' : 'Invite New User'}
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {editingUser 
+                  ? 'Update user information' 
+                  : 'An email invitation will be sent with login credentials'}
+              </p>
+            </div>
             
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+              <div className="space-y-5">
+                {/* Name Fields */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      {...register('first_name', { required: 'First name is required' })}
+                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border"
+                      placeholder="John"
+                    />
+                    {errors.first_name && (
+                      <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                        <span className="inline-block w-1 h-1 bg-red-600 rounded-full"></span>
+                        {errors.first_name.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      {...register('last_name', { required: 'Last name is required' })}
+                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border"
+                      placeholder="Doe"
+                    />
+                    {errors.last_name && (
+                      <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                        <span className="inline-block w-1 h-1 bg-red-600 rounded-full"></span>
+                        {errors.last_name.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Email Field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">First Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
                   <input
-                    {...register('first_name', { required: 'Required' })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    type="email"
+                    {...register('email', { 
+                      required: 'Email is required',
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: 'Invalid email address'
+                      }
+                    })}
+                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border"
+                    placeholder="john.doe@example.com"
+                    disabled={!!editingUser}
                   />
-                  {errors.first_name && (
-                    <p className="mt-1 text-xs text-red-600">{errors.first_name.message}</p>
+                  {errors.email && (
+                    <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                      <span className="inline-block w-1 h-1 bg-red-600 rounded-full"></span>
+                      {errors.email.message}
+                    </p>
+                  )}
+                  {editingUser && (
+                    <p className="mt-1.5 text-xs text-gray-500">Email cannot be changed</p>
                   )}
                 </div>
 
+                {/* Role Field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                  <input
-                    {...register('last_name', { required: 'Required' })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  />
-                  {errors.last_name && (
-                    <p className="mt-1 text-xs text-red-600">{errors.last_name.message}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register('role', { required: 'Role is required' })}
+                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border"
+                  >
+                    <option value="">Select a role...</option>
+                    <option value="PRINCIPAL">Principal</option>
+                    <option value="ADMIN">Administrator</option>
+                    <option value="TEACHER">Teacher</option>
+                    <option value="ACCOUNTANT">Accountant</option>
+                    <option value="SUPPORT">Support Staff</option>
+                    <option value="CLERK">Clerk</option>
+                  </select>
+                  {errors.role && (
+                    <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                      <span className="inline-block w-1 h-1 bg-red-600 rounded-full"></span>
+                      {errors.role.message}
+                    </p>
                   )}
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  {...register('email', { required: 'Required' })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                />
-                {errors.email && (
-                  <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+                {/* Info Box for New Users */}
+                {!editingUser && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <h3 className="text-sm font-medium text-blue-800">Invitation Email</h3>
+                        <div className="mt-2 text-sm text-blue-700">
+                          <p>A secure invitation email will be sent to the user with:</p>
+                          <ul className="list-disc list-inside mt-1 space-y-0.5">
+                            <li>Temporary login credentials</li>
+                            <li>Link to set their own password</li>
+                            <li>Welcome information</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Role</label>
-                <select
-                  {...register('role', { required: 'Required' })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                >
-                  <option value="">Select role</option>
-                  <option value="PRINCIPAL">Principal</option>
-                  <option value="ADMIN">Administrator</option>
-                  <option value="TEACHER">Teacher</option>
-                  <option value="ACCOUNTANT">Accountant</option>
-                  <option value="SUPPORT">Support Staff</option>
-                </select>
-                {errors.role && (
-                  <p className="mt-1 text-xs text-red-600">{errors.role.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Password {editingUser && '(leave blank to keep current)'}
-                </label>
-                <input
-                  type="password"
-                  {...register('password', { required: !editingUser })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                />
-                {errors.password && (
-                  <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  disabled={createUserMutation.isPending}
-                  className="flex-1 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-                >
-                  {createUserMutation.isPending ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
-                </button>
+              {/* Actions */}
+              <div className="mt-6 flex gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -437,12 +474,66 @@ export default function Users() {
                     setEditingUser(null)
                     reset()
                   }}
-                  className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="flex-1 rounded-lg border-2 border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
                 >
                   Cancel
                 </button>
+                <button
+                  type="submit"
+                  disabled={createUserMutation.isPending}
+                  className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {createUserMutation.isPending ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {editingUser ? 'Updating...' : 'Sending Invitation...'}
+                    </span>
+                  ) : (
+                    editingUser ? 'Update User' : 'Send Invitation'
+                  )}
+                </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                  <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete User</h3>
+                <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this user? This action cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  deleteUserMutation.mutate(deleteConfirm)
+                  setDeleteConfirm(null)
+                }}
+                disabled={deleteUserMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteUserMutation.isPending ? 'Deleting...' : 'Delete User'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -2,10 +2,10 @@ import axios from 'axios'
 
 // API Configuration
 const API_VERSION = 'v1'
-// Use environment variable for production, fallback to proxy for development
+// Use environment variable for production, fallback to direct backend URL for development
 const BASE_URL = import.meta.env.VITE_API_BASE_URL 
   ? `${import.meta.env.VITE_API_BASE_URL}/api/${API_VERSION}`
-  : `/api/${API_VERSION}`
+  : `http://localhost:8000/api/${API_VERSION}`
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -76,8 +76,10 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${access}`
         return api(originalRequest)
       } catch (refreshError) {
+        // Clear all auth data on refresh failure
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
+        localStorage.removeItem('auth-storage')
         window.location.href = '/login'
         return Promise.reject(refreshError)
       }

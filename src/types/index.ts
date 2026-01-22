@@ -8,12 +8,18 @@ export interface User {
   phone?: string
   school?: School
   is_trial?: boolean
+  is_platform_admin?: boolean
 }
 
 export interface School {
   id: number
   name: string
   registration_number?: string
+  company_registration_number?: string
+  emis_number?: string
+  verification_status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  cipc_verified: boolean
+  cipc_verification_date?: string
   email: string
   phone?: string
   address?: string
@@ -78,6 +84,7 @@ export interface Student {
   total_fees: number
   amount_paid: number
   balance_due: number
+  months_paid: number
   is_active: boolean
 }
 
@@ -88,7 +95,9 @@ export interface Payment {
   student_id?: string
   amount: number
   payment_date: string
-  payment_method: 'BANK_TRANSFER' | 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'CHEQUE'
+  payment_month?: number
+  payment_year?: number
+  payment_method: 'BANK_TRANSFER' | 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'CHEQUE' | 'MANUAL'
   reference_number: string
   match_type: 'STUDENT_ID' | 'NAME_MATCH' | 'FUZZY_MATCH' | 'REFERENCE' | 'MANUAL'
   match_confidence: number

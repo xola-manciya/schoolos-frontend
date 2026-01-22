@@ -62,16 +62,6 @@ export default function CookieConsent() {
                 We use <strong>essential cookies</strong> and browser storage (LocalStorage) to keep you logged in and secure your session. 
                 We also use <strong>functional storage</strong> to remember your preferences and improve your experience.
               </p>
-              
-              <div className="bg-gray-50 p-4 rounded-lg mb-4 text-sm">
-                <p className="text-gray-700 font-semibold mb-2">What we store:</p>
-                <ul className="space-y-1 text-gray-600">
-                  <li>✅ <strong>Authentication tokens</strong> (essential - keeps you logged in)</li>
-                  <li>✅ <strong>Session security</strong> (essential - protects your account)</li>
-                  <li>🔧 <strong>User preferences</strong> (functional - remembers your settings)</li>
-                  <li>🔧 <strong>Trial/subscription status</strong> (functional - displays relevant info)</li>
-                </ul>
-              </div>
 
               <p className="text-xs text-gray-600 mb-4">
                 We comply with <strong>POPIA</strong> (Protection of Personal Information Act) and respect your data rights. 

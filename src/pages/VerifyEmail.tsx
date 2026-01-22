@@ -1,36 +1,58 @@
-import { useState, FormEvent } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useState, FormEvent, useEffect } from 'react'
+import { useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
+import { useAuthStore } from '../store/authStore'
 
 export default function VerifyEmail() {
   const location = useLocation()
   const navigate = useNavigate()
-  const email = location.state?.email || ''
+  const [searchParams] = useSearchParams()
+  const { login } = useAuthStore()
   
-  const [code, setCode] = useState('')
+  // Get email from state or URL params
+  const email = searchParams.get('email') || location.state?.email || ''
+  // Get code from URL params
+  const urlCode = searchParams.get('code') || ''
+  
+  const [code, setCode] = useState(urlCode)
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  // Auto-verify if both email and code are in URL
+  useEffect(() => {
+    if (email && urlCode) {
+      handleVerification(email, urlCode)
+    }
+  }, [email, urlCode])
+
+  const handleVerification = async (verifyEmail: string, verifyCode: string) => {
     setLoading(true)
 
     try {
       await api.post('/staff/verify-email/', {
-        email,
-        code,
+        email: verifyEmail,
+        code: verifyCode,
       })
       
-      toast.success('Email verified successfully!')
-      navigate('/login')
+      toast.success('Email verified successfully! Logging you in...')
+      
+      // Auto-login after successful verification
+      // Note: The user needs to have their password, so we'll just redirect to login
+      setTimeout(() => {
+        navigate('/login', { state: { verified: true, email: verifyEmail } })
+      }, 1500)
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Verification failed'
       toast.error(errorMessage)
-    } finally {
       setLoading(false)
     }
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    handleVerification(email, code)
   }
 
   const handleResend = async () => {

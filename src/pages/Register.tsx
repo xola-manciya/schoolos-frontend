@@ -13,8 +13,10 @@ export default function Register() {
     firstName: '',
     lastName: '',
     phoneNumber: '',
-    role: 'TEACHER',
+    role: 'PRINCIPAL',
     schoolName: '',
+    companyRegistrationNumber: '',
+    emisNumber: '',
   })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -39,16 +41,21 @@ export default function Register() {
         phone_number: formData.phoneNumber,
         role: formData.role,
         school_name: formData.schoolName,
+        company_registration_number: formData.companyRegistrationNumber,
+        emis_number: formData.emisNumber,
       })
       
       toast.success('Registration successful! Check your email for verification code.')
       navigate('/verify-email', { state: { email: formData.email } })
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.email?.[0] || 
-                          error.response?.data?.password1?.[0] ||
-                          error.response?.data?.role?.[0] ||
-                          error.response?.data?.school_name?.[0] ||
-                          error.response?.data?.detail ||
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { email?: string[]; password1?: string[]; role?: string[]; school_name?: string[]; company_registration_number?: string[]; non_field_errors?: string[]; detail?: string } } }
+      const errorMessage = err.response?.data?.email?.[0] || 
+                          err.response?.data?.password1?.[0] ||
+                          err.response?.data?.role?.[0] ||
+                          err.response?.data?.school_name?.[0] ||
+                          err.response?.data?.company_registration_number?.[0] ||
+                          err.response?.data?.non_field_errors?.[0] ||
+                          err.response?.data?.detail ||
                           'Registration failed'
       toast.error(errorMessage)
     } finally {
@@ -109,9 +116,11 @@ export default function Register() {
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="mb-8">
               <h2 className="text-4xl font-bold text-gray-900 mb-3">
-                Create Account
+                Register Your School
               </h2>
-              <p className="mt-2 text-base text-gray-600">Start your free trial today</p>
+              <p className="mt-2 text-base text-gray-600">
+                Submit your details for verification. You'll receive access once approved.
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -189,20 +198,38 @@ export default function Register() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Role
+                  CIPC Company Registration Number
                 </label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                <input
+                  type="text"
+                  value={formData.companyRegistrationNumber}
+                  onChange={(e) => setFormData({ ...formData, companyRegistrationNumber: e.target.value })}
                   className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                  placeholder="e.g., 2024/123456/07"
                   required
-                >
-                  <option value="PRINCIPAL">Principal</option>
-                  <option value="ADMIN">Administrator</option>
-                  <option value="TEACHER">Teacher</option>
-                  <option value="ACCOUNTANT">Accountant</option>
-                  <option value="SUPPORT">Support Staff</option>
-                </select>
+                  pattern="[0-9]{4}/[0-9]{6}/[0-9]{2}"
+                  title="Format: YYYY/NNNNNN/NN (e.g., 2024/123456/07)"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Your school must be registered with CIPC. Only directors can register.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  EMIS Number
+                  <span className="text-gray-400 font-normal ml-1">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.emisNumber}
+                  onChange={(e) => setFormData({ ...formData, emisNumber: e.target.value })}
+                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                  placeholder="e.g., 1234567890"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Education Management Information System number from the Department of Education
+                </p>
               </div>
 
               <div>
