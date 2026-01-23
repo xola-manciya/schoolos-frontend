@@ -79,22 +79,26 @@ export default function TeacherPortal() {
   })
 
   // Fetch teacher's leaves
-  const { data: leaves = [] } = useQuery<Leave[]>({
+  const { data: leavesData } = useQuery<Leave[]>({
     queryKey: ['teacher-leaves'],
     queryFn: async () => {
       const response = await api.get('/staff/leaves/')
       return response.data
     },
   })
+  
+  const leaves = Array.isArray(leavesData) ? leavesData : []
 
   // Fetch students assigned to teacher
-  const { data: students = [] } = useQuery<Student[]>({
+  const { data: studentsData } = useQuery<Student[]>({
     queryKey: ['teacher-students'],
     queryFn: async () => {
       const response = await api.get('/students/students/?teacher=me')
       return response.data
     },
   })
+  
+  const students = Array.isArray(studentsData) ? studentsData : []
 
   // Submit leave application
   const leaveApplication = useMutation({
