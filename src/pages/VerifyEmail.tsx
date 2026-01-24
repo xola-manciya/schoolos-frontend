@@ -3,13 +3,11 @@ import { useNavigate, useLocation, Link, useSearchParams } from 'react-router-do
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
-import { useAuthStore } from '../store/authStore'
 
 export default function VerifyEmail() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { login } = useAuthStore()
   
   // Get email from state or URL params
   const email = searchParams.get('email') || location.state?.email || ''

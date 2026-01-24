@@ -140,7 +140,7 @@ export default function TwoFactorVerify({ onSuccess, onCancel, deviceId }: TwoFa
           {/* Help Text */}
           <div className="mt-6 pt-6 border-t border-gray-200">
             <div className="flex items-start space-x-2">
-              <KeyIcon className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <span className="text-lg text-gray-400 flex-shrink-0 mt-0.5">🔑</span>
               <div className="text-xs text-gray-500">
                 <p className="font-medium text-gray-700 mb-1">Lost your device?</p>
                 <p>
