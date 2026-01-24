@@ -21,6 +21,8 @@ type StudentForm = {
   parent_phone: string
   parent_email: string
   parent_id_number: string
+  class_enrolled?: number
+  grade?: string
   enrollment_date: string
   total_fees: number
 }
@@ -545,6 +547,14 @@ export default function Students() {
                       <option value="F">Female</option>
                       <option value="O">Other</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Grade/Year</label>
+                    <input
+                      {...register('grade')}
+                      placeholder="e.g., Grade 8, Year 10"
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                    />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700">Address</label>
