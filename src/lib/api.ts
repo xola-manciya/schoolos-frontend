@@ -1,5 +1,6 @@
 import axios from 'axios'
 
+
 // API Configuration
 const API_VERSION = 'v1'
 // Use environment variable for production, fallback to direct backend URL for development
