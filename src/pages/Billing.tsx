@@ -92,7 +92,6 @@ export default function Billing() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
   const [processingPayment, setProcessingPayment] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
-  const [showCanceledDialog, setShowCanceledDialog] = useState(false)
   const [canceling, setCanceling] = useState(false)
   const { user } = useAuthStore()
 
@@ -167,12 +166,11 @@ export default function Billing() {
       const response = await api.post('/payments/cancel-subscription/')
       return response.data
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       setShowCancelDialog(false)
       setCanceling(false)
       // Store cancellation state in localStorage to show dialog on all pages
       localStorage.setItem('subscription_just_canceled', 'true')
-      setShowCanceledDialog(true)
     },
     onError: (error: any) => {
       const errorMessage = error.response?.data?.error || 'Failed to cancel subscription'
@@ -369,7 +367,7 @@ export default function Billing() {
         {/* Actions */}
         <div className="grid gap-4 md:grid-cols-3">
           <button
-            onClick={() => toast.info('Please contact support@schoolos.co.za to change your plan')}
+            onClick={() => toast('Please contact support@schoolos.co.za to change your plan')}
             className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Change Plan

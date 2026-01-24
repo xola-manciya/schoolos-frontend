@@ -5,7 +5,6 @@ import { toast } from 'react-hot-toast'
 import api from '../lib/api'
 import { StaffProfile, Leave } from '../types'
 import { ExportButton } from '../components/ExportButton'
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 type LeaveFilter = 'all' | 'on-leave' | 'active'
 

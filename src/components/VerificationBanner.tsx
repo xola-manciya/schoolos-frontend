@@ -1,4 +1,4 @@
-import { XMarkIcon, ExclamationTriangleIcon, CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ExclamationTriangleIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 
 interface VerificationBannerProps {
@@ -6,7 +6,7 @@ interface VerificationBannerProps {
   schoolName?: string
 }
 
-export default function VerificationBanner({ status, schoolName }: VerificationBannerProps) {
+export default function VerificationBanner({ status }: VerificationBannerProps) {
   const [isDismissed, setIsDismissed] = useState(false)
 
   // Don't show banner if approved or dismissed
