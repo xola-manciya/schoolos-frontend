@@ -61,12 +61,18 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 
-      try {
-        const refreshToken = localStorage.getItem('refresh_token')
-        if (!refreshToken) {
-          throw new Error('No refresh token available')
-        }
+      const refreshToken = localStorage.getItem('refresh_token')
+      
+      // If no refresh token available, clear auth and redirect to login
+      if (!refreshToken) {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('auth-storage')
+        window.location.href = '/login'
+        return Promise.reject(error)
+      }
 
+      try {
         const response = await axios.post(`${BASE_URL}/auth/token/refresh/`, {
           refresh: refreshToken,
         })
