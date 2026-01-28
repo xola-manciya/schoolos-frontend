@@ -12,32 +12,48 @@ export default function Login() {
   const { login } = useAuthStore()
   const navigate = useNavigate()
 
-  // Show success message if redirected from verification
+  // Show messages if redirected with state
   useEffect(() => {
     if (location.state?.verified) {
       toast.success('Email verified! Please login to continue.')
+    }
+    if (location.state?.message) {
+      toast.error(location.state.message)
     }
   }, [location.state])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    e.stopPropagation() // Prevent any event bubbling
     setLoading(true)
 
     try {
-      await login(email, password)
+      const user = await login(email, password)
+      
+      // Check if email is verified
+      if (user && !user.email_verified) {
+        toast.error('Please verify your email before logging in.')
+        navigate('/verify-email', { state: { email: user.email } })
+        setLoading(false)
+        return
+      }
+      
       toast.success('Login successful!')
       navigate('/app')
     } catch (error: any) {
-      const errorMessage = 
-        error.response?.data?.non_field_errors?.[0] ||
-        error.response?.data?.detail ||
-        error.response?.data?.email?.[0] ||
-        error.response?.data?.password?.[0] ||
-        error.response?.data?.error ||
-        error.message ||
-        'Invalid email or password. Please try again.'
+      // Ensure page doesn't refresh on error
+      // Use a generic, user-friendly error message for security
+      let errorMessage = 'Invalid email or password. Please check your credentials and try again.'
+      
+      // Only show specific errors for non-authentication issues
+      if (error.response?.status !== 401) {
+        errorMessage = 
+          error.response?.data?.email?.[0] ||
+          error.response?.data?.error ||
+          'An error occurred. Please try again later.'
+      }
+      
       toast.error(errorMessage)
-    } finally {
       setLoading(false)
     }
   }
@@ -100,12 +116,15 @@ export default function Login() {
                 Sign in
               </h2>
               <p className="mt-2 text-base text-gray-600">Welcome back! Please enter your details.</p>
+              <p className="mt-3 text-sm text-gray-500">
+                <span className="text-red-500">*</span> indicates required fields
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -120,7 +139,7 @@ export default function Login() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Password
+                    Password <span className="text-red-500">*</span>
                   </label>
                   <Link to="/forgot-password" className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors">
                     Forgot password?

@@ -3,7 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import { Payment, Student } from '../types'
 import toast from 'react-hot-toast'
+import { sanitizeNumber } from '../lib/sanitize'
 import { ExportButton } from '../components/ExportButton'
+import LoadingSpinner from '../components/LoadingSpinner'
+import { ChevronLeftIcon, ChevronRightIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { useAuthStore } from '../store/authStore'
 
 type MonthlyPayment = {
   month: string
@@ -13,7 +17,25 @@ type MonthlyPayment = {
   payment_date?: string
 }
 
+type PaginatedStudentsResponse = {
+  count: number
+  next: string | null
+  previous: string | null
+  results: Student[]
+}
+
+type BankStatement = {
+  id: number
+  file_url: string
+  filename: string
+  file_type: string
+  upload_date: string
+  status: 'UPLOADED' | 'PROCESSING' | 'PROCESSED' | 'FAILED'
+  uploaded_by_name: string
+}
+
 export default function Payments() {
+  const { user } = useAuthStore()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -22,6 +44,9 @@ export default function Payments() {
   const [showBreakdownSidebar, setShowBreakdownSidebar] = useState(false)
   const [breakdownStudentId, setBreakdownStudentId] = useState<number | null>(null)
   const [deleteAllConfirm, setDeleteAllConfirm] = useState<{ id: number; name: string } | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString())
   const queryClient = useQueryClient()
 
   const { data: payments, isLoading } = useQuery<Payment[]>({
@@ -32,19 +57,37 @@ export default function Payments() {
     },
   })
 
-  const { data: students } = useQuery<Student[]>({
-    queryKey: ['students'],
+  const { data: studentsData } = useQuery<PaginatedStudentsResponse>({
+    queryKey: ['students', currentPage, pageSize, yearFilter],
     queryFn: async () => {
-      const response = await api.get('/students/')
-      return response.data.results || response.data
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        page_size: pageSize.toString(),
+      })
+      if (yearFilter) {
+        params.append('year', yearFilter)
+      }
+      const response = await api.get(`/students/?${params.toString()}`)
+      return response.data
     },
   })
+
+  const students = studentsData?.results || []
+  const totalPages = studentsData ? Math.ceil(studentsData.count / pageSize) : 1
 
   const { data: school } = useQuery({
     queryKey: ['school'],
     queryFn: async () => {
       const response = await api.get('/general/schools/me/')
       return response.data
+    },
+  })
+
+  const { data: bankStatements } = useQuery<BankStatement[]>({
+    queryKey: ['bank-statements'],
+    queryFn: async () => {
+      const response = await api.get('/payments/statements/')
+      return response.data.results || response.data
     },
   })
 
@@ -79,9 +122,10 @@ export default function Payments() {
       const monthIndex = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].indexOf(month)
       const paymentDate = new Date(year, monthIndex, 15)
       
+      // Sanitize numeric inputs before sending to backend
       await api.post('/payments/list/', {
-        student: studentId,
-        amount: amount,
+        student: sanitizeNumber(studentId),
+        amount: sanitizeNumber(amount),
         payment_method: 'MANUAL',
         payment_date: paymentDate.toISOString().split('T')[0],
         status: 'VERIFIED',
@@ -89,7 +133,7 @@ export default function Payments() {
         match_type: 'MANUAL',
         match_confidence: 100,
         payment_month: monthIndex + 1,
-        payment_year: year,
+        payment_year: sanitizeNumber(year),
       })
     },
     onSuccess: () => {
@@ -233,7 +277,7 @@ export default function Payments() {
   }
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <LoadingSpinner message="Loading payments..." />
   }
 
   return (
@@ -266,7 +310,34 @@ export default function Payments() {
       <>
           {/* Student Payment Summary */}
           <div className="mb-6 rounded-lg bg-white p-4 shadow sm:p-6">
-            <h2 className="mb-4 text-base font-semibold sm:text-lg">Student Payment Tracking</h2>
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-base font-semibold sm:text-lg">Student Payment Tracking</h2>
+              <div className="flex items-center gap-2">
+                <select
+                  value={yearFilter}
+                  onChange={(e) => {
+                    setYearFilter(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                >
+                  <option value="">All Years</option>
+                  {(() => {
+                    const currentYear = new Date().getFullYear()
+                    const schoolCreatedYear = user?.school?.created_at 
+                      ? new Date(user.school.created_at).getFullYear()
+                      : currentYear
+                    const years = []
+                    for (let year = currentYear; year >= schoolCreatedYear; year--) {
+                      years.push(year)
+                    }
+                    return years.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))
+                  })()}
+                </select>
+              </div>
+            </div>
             
             {students && students.length > 0 ? (
               <>
@@ -351,14 +422,15 @@ export default function Payments() {
                 </div>
 
                 {/* Desktop Table View - Month columns with checkboxes */}
-                <div className="hidden overflow-hidden rounded-lg border lg:block">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                            Student
-                          </th>
+                <div className="hidden lg:block">
+                  <div className="overflow-hidden rounded-lg border">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                              Student
+                            </th>
                           {(() => {
                             const allMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
                             const paymentMonthsCount = school?.payment_months_per_year || 12
@@ -443,6 +515,73 @@ export default function Payments() {
                     </table>
                   </div>
                 </div>
+                {/* Pagination Controls */}
+                {studentsData && studentsData.count > 0 && (
+                  <div className="mt-4 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                    <div className="flex flex-1 justify-between sm:hidden">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm text-gray-700">
+                          Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                          <span className="font-medium">
+                            {Math.min(currentPage * pageSize, studentsData.count)}
+                          </span>{' '}
+                          of <span className="font-medium">{studentsData.count}</span> students
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={pageSize}
+                          onChange={(e) => {
+                            setPageSize(Number(e.target.value))
+                            setCurrentPage(1)
+                          }}
+                          className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                        >
+                          <option value={10}>10 per page</option>
+                          <option value={20}>20 per page</option>
+                          <option value={50}>50 per page</option>
+                          <option value={100}>100 per page</option>
+                        </select>
+                        <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm">
+                          <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            <ChevronLeftIcon className="h-5 w-5" />
+                          </button>
+                          <span className="relative inline-flex items-center border-x-0 border-y border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700">
+                            Page {currentPage} of {totalPages}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            <ChevronRightIcon className="h-5 w-5" />
+                          </button>
+                        </nav>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                </div>
               </>
             ) : (
               <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center">
@@ -466,161 +605,134 @@ export default function Payments() {
             )}
           </div>
 
-          {/* Recent Payments Table */}
+          {/* Uploaded Statements */}
           <div className="rounded-lg bg-white p-4 shadow sm:p-6">
-            <h2 className="mb-4 text-base font-semibold sm:text-lg">Recent Payments</h2>
+            <h2 className="mb-4 text-base font-semibold sm:text-lg">Uploaded Bank Statements</h2>
             
-            {payments && payments.filter(p => p.student).length > 0 ? (
+            {bankStatements && bankStatements.length > 0 ? (
               <>
                 {/* Mobile Card View */}
                 <div className="block space-y-4 lg:hidden">
-              {payments.filter(p => p.student).slice(0, 20).map((payment) => (
-                <div key={payment.id} className="rounded-lg border bg-white p-4">
-                  <div className="mb-2 flex items-start justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900">{payment.student_name || 'Unassigned'}</p>
-                      <p className="text-sm text-gray-500">{payment.payment_date}</p>
-                    </div>
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        payment.status === 'VERIFIED'
-                          ? 'bg-green-100 text-green-800'
-                          : payment.status === 'PENDING'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {payment.status}
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Amount:</span>
-                      <span className="font-semibold text-gray-900">R {payment.amount.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Method:</span>
-                      <span className="text-gray-900">{payment.payment_method}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Match:</span>
-                      <span className="text-gray-900">{payment.match_type} ({payment.match_confidence}%)</span>
-                    </div>
-                    {payment.bank_statement_file && (
-                      <div className="flex justify-between pt-2">
-                        <a
-                          href={payment.bank_statement_file}
-                          download={payment.bank_statement_filename}
-                          className="text-primary-600 hover:text-primary-800 text-xs font-medium"
-                        >
-                          📄 Download Statement
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden overflow-hidden rounded-lg border lg:block">
-              <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Date
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Student
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Amount
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Method
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Match Type
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      File
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {payments.filter(p => p.student).slice(0, 20).map((payment) => (
-                    <tr key={payment.id} className="hover:bg-gray-50">
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                        {payment.payment_date}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                        {payment.student_name}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                        R {payment.amount.toLocaleString()}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {payment.payment_method}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {payment.match_type} ({payment.match_confidence}%)
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm">
+                  {bankStatements.slice(0, 10).map((statement) => (
+                    <div key={statement.id} className="rounded-lg border bg-white p-4">
+                      <div className="mb-2 flex items-start justify-between">
+                        <div>
+                          <p className="font-semibold text-gray-900">{statement.filename}</p>
+                          <p className="text-sm text-gray-500">{new Date(statement.upload_date).toLocaleDateString()}</p>
+                        </div>
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                            payment.status === 'VERIFIED'
+                            statement.status === 'PROCESSED'
                               ? 'bg-green-100 text-green-800'
-                              : payment.status === 'PENDING'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
+                              : statement.status === 'PROCESSING'
+                              ? 'bg-blue-100 text-blue-800'
+                              : statement.status === 'FAILED'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
-                          {payment.status}
+                          {statement.status}
                         </span>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm">
-                        {payment.bank_statement_file ? (
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Type:</span>
+                          <span className="text-gray-900">{statement.file_type}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Uploaded by:</span>
+                          <span className="text-gray-900">{statement.uploaded_by_name}</span>
+                        </div>
+                        <div className="flex justify-end pt-2">
                           <a
-                            href={payment.bank_statement_file}
-                            download={payment.bank_statement_filename}
-                            className="text-primary-600 hover:text-primary-800 font-medium"
+                            href={statement.file_url}
+                            download={statement.filename}
+                            className="inline-flex items-center gap-1 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
                           >
+                            <ArrowDownTrayIcon className="h-4 w-4" />
                             Download
                           </a>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                    </tr>
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-              </div>
-            </div>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden overflow-hidden rounded-lg border lg:block">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Date Uploaded
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Filename
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Type
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Uploaded By
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Status
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white">
+                        {bankStatements.slice(0, 10).map((statement) => (
+                          <tr key={statement.id} className="hover:bg-gray-50">
+                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                              {new Date(statement.upload_date).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900">
+                              {statement.filename}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                              {statement.file_type}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                              {statement.uploaded_by_name}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4">
+                              <span
+                                className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold leading-5 ${
+                                  statement.status === 'PROCESSED'
+                                    ? 'bg-green-100 text-green-800'
+                                    : statement.status === 'PROCESSING'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : statement.status === 'FAILED'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}
+                              >
+                                {statement.status}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-sm">
+                              <a
+                                href={statement.file_url}
+                                download={statement.filename}
+                                className="inline-flex items-center gap-1 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                              >
+                                <ArrowDownTrayIcon className="h-4 w-4" />
+                                Download
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No student payments</h3>
-                <p className="mt-1 text-sm text-gray-500">Upload a bank statement to process payments. Only payments assigned to students will be shown.</p>
-              </div>
+              <p className="text-gray-500">No bank statements uploaded yet</p>
             )}
           </div>
         </>

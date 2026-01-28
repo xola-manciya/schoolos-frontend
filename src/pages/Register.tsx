@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import PasswordStrength from '../components/PasswordStrength'
+import { sanitizeText, sanitizeEmail, sanitizePhone } from '../lib/sanitize'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -13,10 +14,7 @@ export default function Register() {
     firstName: '',
     lastName: '',
     phoneNumber: '',
-    role: 'PRINCIPAL',
-    schoolName: '',
-    companyRegistrationNumber: '',
-    emisNumber: '',
+    role: 'ADMIN',
   })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -32,28 +30,24 @@ export default function Register() {
     setLoading(true)
 
     try {
+      // Sanitize inputs before sending to backend (defense in depth)
       await api.post('/auth/registration/', {
-        email: formData.email,
+        email: sanitizeEmail(formData.email),
         password1: formData.password,
         password2: formData.confirmPassword,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        phone_number: formData.phoneNumber,
+        first_name: sanitizeText(formData.firstName),
+        last_name: sanitizeText(formData.lastName),
+        phone_number: sanitizePhone(formData.phoneNumber),
         role: formData.role,
-        school_name: formData.schoolName,
-        company_registration_number: formData.companyRegistrationNumber,
-        emis_number: formData.emisNumber,
       })
       
       toast.success('Registration successful! Check your email for verification code.')
       navigate('/verify-email', { state: { email: formData.email } })
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { email?: string[]; password1?: string[]; role?: string[]; school_name?: string[]; company_registration_number?: string[]; non_field_errors?: string[]; detail?: string } } }
+      const err = error as { response?: { data?: { email?: string[]; password1?: string[]; role?: string[]; non_field_errors?: string[]; detail?: string } } }
       const errorMessage = err.response?.data?.email?.[0] || 
                           err.response?.data?.password1?.[0] ||
                           err.response?.data?.role?.[0] ||
-                          err.response?.data?.school_name?.[0] ||
-                          err.response?.data?.company_registration_number?.[0] ||
                           err.response?.data?.non_field_errors?.[0] ||
                           err.response?.data?.detail ||
                           'Registration failed'
@@ -116,10 +110,13 @@ export default function Register() {
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="mb-8">
               <h2 className="text-4xl font-bold text-gray-900 mb-3">
-                Register Your School
+                Create Your Account
               </h2>
               <p className="mt-2 text-base text-gray-600">
-                Submit your details for verification. You'll receive access once approved.
+                Get started with your free 1-month trial
+              </p>
+              <p className="mt-3 text-sm text-gray-500">
+                <span className="text-red-500">*</span> indicates required fields
               </p>
             </div>
 
@@ -127,10 +124,12 @@ export default function Register() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name
+                    First Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
+                    name="firstName"
+                    autoComplete="given-name"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
@@ -141,10 +140,12 @@ export default function Register() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name
+                    Last Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
+                    name="lastName"
+                    autoComplete="family-name"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
@@ -156,10 +157,12 @@ export default function Register() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
+                  name="email"
+                  autoComplete="username email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
@@ -170,10 +173,12 @@ export default function Register() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
+                  Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
+                  name="phoneNumber"
+                  autoComplete="tel"
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
@@ -184,60 +189,12 @@ export default function Register() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  School Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.schoolName}
-                  onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
-                  placeholder="Enter your school name"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  CIPC Company Registration Number
-                </label>
-                <input
-                  type="text"
-                  value={formData.companyRegistrationNumber}
-                  onChange={(e) => setFormData({ ...formData, companyRegistrationNumber: e.target.value })}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
-                  placeholder="e.g., 2024/123456/07"
-                  required
-                  pattern="[0-9]{4}/[0-9]{6}/[0-9]{2}"
-                  title="Format: YYYY/NNNNNN/NN (e.g., 2024/123456/07)"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Your school must be registered with CIPC. Only directors can register.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  EMIS Number
-                  <span className="text-gray-400 font-normal ml-1">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.emisNumber}
-                  onChange={(e) => setFormData({ ...formData, emisNumber: e.target.value })}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
-                  placeholder="e.g., 1234567890"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Education Management Information System number from the Department of Education
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
+                  name="password"
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
@@ -250,10 +207,12 @@ export default function Register() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password
+                  Confirm Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
+                  name="confirmPassword"
+                  autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   className="block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
@@ -268,7 +227,7 @@ export default function Register() {
                 disabled={loading}
                 className="w-full rounded-lg bg-gradient-to-r from-primary-600 to-blue-600 px-4 py-3 text-white font-semibold shadow-lg hover:shadow-xl hover:from-primary-700 hover:to-blue-700 disabled:opacity-50 transition-all"
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
+                {loading ? 'Creating Account...' : 'Continue'}
               </button>
             </form>
             

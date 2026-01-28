@@ -13,7 +13,8 @@ import {
   AcademicCapIcon,
   EnvelopeIcon,
   PhoneIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  PowerIcon
 } from '@heroicons/react/24/outline';
 
 interface School {
@@ -36,6 +37,7 @@ interface School {
   subscription_start: string;
   subscription_end: string;
   created_at: string;
+  is_active: boolean;
   staff_count: number;
   student_count: number;
   admin_user: {
@@ -110,6 +112,55 @@ export default function SchoolReview() {
     },
   });
 
+  // Toggle CIPC verification mutation
+  const toggleVerificationMutation = useMutation({
+    mutationFn: async (schoolId: number) => {
+      const response = await api.post(`/general/schools/${schoolId}/approve/`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['school-review'] });
+      toast.success('CIPC verification status updated');
+      // Update the selected school to reflect changes
+      if (selectedSchool) {
+        setSelectedSchool({
+          ...selectedSchool,
+          cipc_verified: true,
+          verification_status: 'APPROVED',
+          cipc_verification_date: new Date().toISOString()
+        });
+      }
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } }
+      toast.error(err.response?.data?.detail || 'Failed to update verification status');
+    },
+  });
+
+  // Toggle school active status mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: async (schoolId: number) => {
+      const response = await api.post(`/general/schools/${schoolId}/toggle-active/`);
+      return response.data;
+    },
+    onSuccess: async (data) => {
+      // Refetch school data to get updated list
+      await queryClient.refetchQueries({ queryKey: ['school-review'] });
+      toast.success(data.message);
+      // Update the selected school to reflect changes
+      if (selectedSchool) {
+        setSelectedSchool({
+          ...selectedSchool,
+          is_active: data.is_active
+        });
+      }
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } }
+      toast.error(err.response?.data?.detail || 'Failed to toggle school status');
+    },
+  });
+
   const handleApprove = async (schoolId: number) => {
     const confirmed = await dialog.confirm(
       'Are you sure you want to approve this school?',
@@ -134,6 +185,22 @@ export default function SchoolReview() {
     }
   };
 
+  const handleToggleActive = async (school: School) => {
+    const action = school.is_active ? 'disable' : 'enable';
+    const message = school.is_active 
+      ? 'This will block all access to the school. Users will not be able to login or access any features.'
+      : 'This will restore access to the school. Users will be able to login and access features.';
+    
+    const confirmed = await dialog.confirm(
+      message,
+      `${action.charAt(0).toUpperCase() + action.slice(1)} School`
+    );
+    
+    if (confirmed) {
+      toggleActiveMutation.mutate(school.id);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const badges = {
       PENDING: { color: 'bg-yellow-100 text-yellow-800', icon: ClockIcon, text: 'Pending Review' },
@@ -153,11 +220,17 @@ export default function SchoolReview() {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-ZA', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString('en-ZA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid Date';
+    }
   };
 
   if (isLoading) {
@@ -367,7 +440,17 @@ export default function SchoolReview() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(school.verification_status)}
+                      <div className="flex flex-col gap-1">
+                        {getStatusBadge(school.verification_status)}
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          school.is_active 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          <PowerIcon className="h-3 w-3" />
+                          {school.is_active ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(school.created_at)}
@@ -397,11 +480,24 @@ export default function SchoolReview() {
                               setShowDetailModal(true);
                             }}
                             disabled={rejectMutation.isPending}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                            className="text-red-600 hover:text-red-900 mr-2 disabled:opacity-50"
                           >
                             Reject
                           </button>
                         </>
+                      )}
+                      {school.verification_status !== 'PENDING' && (
+                        <button
+                          onClick={() => handleToggleActive(school)}
+                          disabled={toggleActiveMutation.isPending}
+                          className={`${
+                            school.is_active 
+                              ? 'text-gray-600 hover:text-gray-900' 
+                              : 'text-blue-600 hover:text-blue-900'
+                          } disabled:opacity-50`}
+                        >
+                          {school.is_active ? 'Disable' : 'Enable'}
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -454,25 +550,51 @@ export default function SchoolReview() {
 
               {/* Registration Information */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Registration Information</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900">Registration Information</h3>
+                  <button
+                    onClick={() => toggleVerificationMutation.mutate(selectedSchool.id)}
+                    disabled={toggleVerificationMutation.isPending || selectedSchool.cipc_verified}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedSchool.cipc_verified
+                        ? 'bg-green-100 text-green-800 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    } disabled:opacity-50`}
+                  >
+                    {toggleVerificationMutation.isPending ? (
+                      'Verifying...'
+                    ) : selectedSchool.cipc_verified ? (
+                      <span className="flex items-center gap-1">
+                        <CheckCircleIcon className="h-4 w-4" />
+                        CIPC Verified
+                      </span>
+                    ) : (
+                      'Mark as CIPC Verified'
+                    )}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                   <div>
                     <label className="text-sm font-medium text-gray-500">CIPC Registration</label>
-                    <p className="text-gray-900">{selectedSchool.company_registration_number || 'Not provided'}</p>
+                    <p className="text-gray-900 font-mono">{selectedSchool.company_registration_number || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">EMIS Number</label>
-                    <p className="text-gray-900">{selectedSchool.emis_number || 'Not provided'}</p>
+                    <p className="text-gray-900 font-mono">{selectedSchool.emis_number || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Verified</label>
-                    <p className={selectedSchool.cipc_verified ? 'text-green-600' : 'text-red-600'}>
-                      {selectedSchool.cipc_verified ? 'Yes' : 'No'}
+                    <label className="text-sm font-medium text-gray-500">CIPC Verification Status</label>
+                    <p className={`font-semibold ${selectedSchool.cipc_verified ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {selectedSchool.cipc_verified ? '✓ Verified' : 'Not Verified'}
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Verification Date</label>
                     <p className="text-gray-900">{formatDate(selectedSchool.cipc_verification_date)}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-500">Registration Date</label>
+                    <p className="text-gray-900">{formatDate(selectedSchool.created_at)}</p>
                   </div>
                 </div>
               </div>
@@ -512,6 +634,51 @@ export default function SchoolReview() {
                     <div>
                       <label className="text-sm font-medium text-gray-500">Role</label>
                       <p className="text-gray-900">{selectedSchool.admin_user.role}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* School Status - Show for non-pending schools */}
+              {selectedSchool.verification_status !== 'PENDING' && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">School Status</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Access Status</label>
+                        <p className={`text-lg font-semibold ${selectedSchool.is_active ? 'text-green-600' : 'text-gray-600'}`}>
+                          {selectedSchool.is_active ? '✓ Active - School has full access' : '✗ Disabled - School access is blocked'}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {selectedSchool.is_active 
+                            ? 'Users can login and access all features' 
+                            : 'Users cannot login or access any features'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleToggleActive(selectedSchool)}
+                        disabled={toggleActiveMutation.isPending}
+                        className={`px-6 py-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                          selectedSchool.is_active
+                            ? 'bg-gray-600 text-white hover:bg-gray-700'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        {toggleActiveMutation.isPending ? (
+                          'Processing...'
+                        ) : selectedSchool.is_active ? (
+                          <span className="flex items-center gap-2">
+                            <PowerIcon className="h-5 w-5" />
+                            Disable School
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <PowerIcon className="h-5 w-5" />
+                            Enable School
+                          </span>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -18,11 +18,11 @@ export function useFeatureFlags() {
   });
 
   const isFeatureEnabled = (featureKey: string) => {
-    // If query failed or still loading, enable all features by default
+    // If query failed or still loading, disable all features by default for safety
     if (isError || isLoading || !data) {
-      return true;
+      return false;
     }
-    return data?.enabled_features?.includes(featureKey) ?? true;
+    return data?.enabled_features?.includes(featureKey) ?? false;
   };
 
   return {

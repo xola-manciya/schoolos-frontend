@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import { useAuthStore } from '../store/authStore'
 import { toast } from 'react-hot-toast'
+import { sanitizeText, sanitizeEmail, sanitizePhone } from '../lib/sanitize'
 import { UserCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline'
 
 interface ProfileData {
@@ -11,6 +12,7 @@ interface ProfileData {
   email: string
   phone: string
   role: string
+  employee_id?: string
 }
 
 interface PasswordData {
@@ -31,6 +33,7 @@ export default function Profile() {
     email: user?.email || '',
     phone: user?.phone || '',
     role: user?.role || '',
+    employee_id: '',
   })
 
   const [passwordData, setPasswordData] = useState<PasswordData>({
@@ -41,7 +44,16 @@ export default function Profile() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileData) => {
-      const response = await api.patch('/auth/user/', data)
+      // Sanitize inputs before sending to backend
+      const sanitizedData = {
+        first_name: sanitizeText(data.first_name),
+        last_name: sanitizeText(data.last_name),
+        email: sanitizeEmail(data.email),
+        phone: sanitizePhone(data.phone),
+        role: data.role,
+        employee_id: data.employee_id ? sanitizeText(data.employee_id) : '',
+      }
+      const response = await api.patch('/auth/user/', sanitizedData)
       return response.data
     },
     onSuccess: (data) => {
@@ -138,11 +150,11 @@ export default function Profile() {
                   type="text"
                   value={profileData.first_name}
                   onChange={(e) => setProfileData({ ...profileData, first_name: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   required
                 />
               ) : (
-                <p className="text-gray-900">{profileData.first_name}</p>
+                <p className="text-gray-900 py-2">{profileData.first_name}</p>
               )}
             </div>
 
@@ -155,11 +167,11 @@ export default function Profile() {
                   type="text"
                   value={profileData.last_name}
                   onChange={(e) => setProfileData({ ...profileData, last_name: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   required
                 />
               ) : (
-                <p className="text-gray-900">{profileData.last_name}</p>
+                <p className="text-gray-900 py-2">{profileData.last_name}</p>
               )}
             </div>
 
@@ -167,7 +179,7 @@ export default function Profile() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email
               </label>
-              <p className="text-gray-900">{profileData.email}</p>
+              <p className="text-gray-900 py-2">{profileData.email}</p>
               <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
             </div>
 
@@ -180,10 +192,10 @@ export default function Profile() {
                   type="tel"
                   value={profileData.phone}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 />
               ) : (
-                <p className="text-gray-900">{profileData.phone || 'Not set'}</p>
+                <p className="text-gray-900 py-2">{profileData.phone || 'Not set'}</p>
               )}
             </div>
 
@@ -191,8 +203,17 @@ export default function Profile() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Role
               </label>
-              <p className="text-gray-900">{profileData.role}</p>
+              <p className="text-gray-900 py-2">{profileData.role}</p>
             </div>
+
+            {profileData.employee_id && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Employee ID
+                </label>
+                <p className="text-gray-900 py-2">{profileData.employee_id}</p>
+              </div>
+            )}
           </div>
 
           {isEditingProfile && (
@@ -253,7 +274,7 @@ export default function Profile() {
                   type="password"
                   value={passwordData.old_password}
                   onChange={(e) => setPasswordData({ ...passwordData, old_password: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   required
                 />
               </div>
@@ -266,7 +287,7 @@ export default function Profile() {
                   type="password"
                   value={passwordData.new_password}
                   onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   required
                   minLength={8}
                 />
@@ -281,7 +302,7 @@ export default function Profile() {
                   type="password"
                   value={passwordData.confirm_password}
                   onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   required
                   minLength={8}
                 />

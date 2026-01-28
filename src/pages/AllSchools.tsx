@@ -37,6 +37,7 @@ export default function AllSchools() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null)
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false)
 
   const { data: schools, isLoading } = useQuery<School[]>({
     queryKey: ['all-schools', searchQuery, statusFilter],
@@ -49,6 +50,20 @@ export default function AllSchools() {
       return Array.isArray(response.data) ? response.data : response.data.results || []
     },
   })
+
+  const handleViewDetails = async (schoolId: number) => {
+    setIsLoadingDetails(true)
+    setSelectedSchool(null) // Clear previous data
+    
+    try {
+      const response = await api.get(`/general/schools/${schoolId}/`)
+      setSelectedSchool(response.data)
+    } catch (error) {
+      console.error('Failed to load school details:', error)
+    } finally {
+      setIsLoadingDetails(false)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -67,12 +82,19 @@ export default function AllSchools() {
     )
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-ZA', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A'
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return 'N/A'
+      return date.toLocaleDateString('en-ZA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    } catch {
+      return 'N/A'
+    }
   }
 
   return (
@@ -213,7 +235,7 @@ export default function AllSchools() {
             {schools.map((school) => (
               <li key={school.id} className="hover:bg-gray-50">
                 <button
-                  onClick={() => setSelectedSchool(school)}
+                  onClick={() => handleViewDetails(school.id)}
                   className="w-full text-left px-6 py-5 flex items-center justify-between"
                 >
                   <div className="flex-1 min-w-0">
@@ -265,14 +287,17 @@ export default function AllSchools() {
       </div>
 
       {/* School Details Modal */}
-      {selectedSchool && (
+      {(selectedSchool || isLoadingDetails) && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900">School Details</h2>
                 <button
-                  onClick={() => setSelectedSchool(null)}
+                  onClick={() => {
+                    setSelectedSchool(null)
+                    setIsLoadingDetails(false)
+                  }}
                   className="text-gray-400 hover:text-gray-500"
                 >
                   <XCircleIcon className="h-6 w-6" />
@@ -280,7 +305,13 @@ export default function AllSchools() {
               </div>
             </div>
 
-            <div className="px-6 py-4 space-y-6">
+            {isLoadingDetails ? (
+              <div className="px-6 py-12 text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                <p className="text-sm text-gray-500">Loading school details...</p>
+              </div>
+            ) : selectedSchool ? (
+              <div className="px-6 py-4 space-y-6">
               {/* Basic Info */}
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Basic Information</h3>
@@ -369,10 +400,14 @@ export default function AllSchools() {
                 </dl>
               </div>
             </div>
+            ) : null}
 
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
               <button
-                onClick={() => setSelectedSchool(null)}
+                onClick={() => {
+                  setSelectedSchool(null)
+                  setIsLoadingDetails(false)
+                }}
                 className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Close

@@ -34,12 +34,11 @@ export default function VerifyEmail() {
         code: verifyCode,
       })
       
-      toast.success('Email verified successfully! Logging you in...')
+      toast.success('✓ Email verified! Redirecting you to complete your school setup...')
       
-      // Auto-login after successful verification
-      // Note: The user needs to have their password, so we'll just redirect to login
+      // Redirect to school details page after successful verification
       setTimeout(() => {
-        navigate('/login', { state: { verified: true, email: verifyEmail } })
+        navigate('/school-details')
       }, 1500)
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Verification failed'
@@ -109,14 +108,17 @@ export default function VerifyEmail() {
             <h2 className="text-4xl font-bold text-gray-900 mb-3">
               Enter Verification Code
             </h2>
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600 mb-2">
               We sent a 6-digit code to <strong>{email}</strong>
+            </p>
+            <p className="text-sm text-gray-500 mb-8">
+              <span className="text-red-500">*</span> indicates required fields
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Verification Code
+                  Verification Code <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"

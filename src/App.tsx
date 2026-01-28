@@ -1,14 +1,17 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
+import { Toaster } from 'react-hot-toast'
 import { useEffect, useState } from 'react'
 import { useAuthStore } from './store/authStore'
 import { DialogProvider } from './contexts/DialogContext'
+import { useAutoLogout } from './hooks/useAutoLogout'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import CookieConsent from './components/CookieConsent'
 import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import SchoolDetails from './pages/SchoolDetails'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import EmailSent from './pages/EmailSent'
@@ -33,15 +36,20 @@ import PAIAManual from './pages/PAIAManual'
 import PaymentCallback from './pages/PaymentCallback'
 import Billing from './pages/Billing'
 import Profile from './pages/Profile'
+import SchoolSettings from './pages/SchoolSettings'
 import PlatformAdmin from './pages/PlatformAdmin'
 import SchoolReview from './pages/SchoolReview'
 import AllSchools from './pages/AllSchools'
 import AllUsers from './pages/AllUsers'
 import FeatureFlags from './pages/FeatureFlags'
+import MonthlyPaymentReport from './pages/MonthlyPaymentReport'
 
 function App() {
   const { isAuthenticated, user, fetchUser, logout } = useAuthStore()
   const [isInitialized, setIsInitialized] = useState(false)
+
+  // Auto-logout after 30 minutes of inactivity
+  useAutoLogout(30)
 
   // Validate token on app initialization
   useEffect(() => {
@@ -84,11 +92,36 @@ function App() {
   return (
     <HelmetProvider>
       <DialogProvider>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              duration: 3000,
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              duration: 4000,
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
         <CookieConsent />
         <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/school-details" element={<SchoolDetails />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         <Route path="/email-sent" element={<EmailSent />} />
@@ -157,7 +190,7 @@ function App() {
           <Route 
             path="students" 
             element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'PAYMENT_PROCESSOR']}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'PAYMENT_PROCESSOR']} featureKey="students">
                 <Students />
               </ProtectedRoute>
             } 
@@ -165,7 +198,7 @@ function App() {
           <Route 
             path="staff" 
             element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT']}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT']} featureKey="staff">
                 <Staff />
               </ProtectedRoute>
             } 
@@ -173,15 +206,23 @@ function App() {
           <Route 
             path="payments" 
             element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'PAYMENT_PROCESSOR']}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'PAYMENT_PROCESSOR']} featureKey="payments">
                 <Payments />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="payment-report" 
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'PAYMENT_PROCESSOR']}>
+                <MonthlyPaymentReport />
               </ProtectedRoute>
             } 
           />
           <Route 
             path="pictures" 
             element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'TEACHER', 'SUPPORT']}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'TEACHER', 'SUPPORT']} featureKey="school_pictures">
                 <SchoolPictures />
               </ProtectedRoute>
             } 
@@ -197,7 +238,7 @@ function App() {
           <Route 
             path="users" 
             element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL']}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL']} featureKey="users">
                 <Users />
               </ProtectedRoute>
             } 
@@ -227,6 +268,7 @@ function App() {
             } 
           />
           <Route path="profile" element={<Profile />} />
+          <Route path="school-settings" element={<SchoolSettings />} />
         </Route>
         ) : (
           <Route path="/app/*" element={<Navigate to="/login" replace />} />

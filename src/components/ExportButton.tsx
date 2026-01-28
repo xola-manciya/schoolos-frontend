@@ -6,9 +6,10 @@ import toast from 'react-hot-toast'
 interface ExportButtonProps {
   endpoint: string // e.g., '/students/export/' or '/payments/export/'
   filename?: string
+  filters?: Record<string, string | number | boolean>
 }
 
-export function ExportButton({ endpoint, filename }: ExportButtonProps) {
+export function ExportButton({ endpoint, filename, filters = {} }: ExportButtonProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
@@ -20,8 +21,16 @@ export function ExportButton({ endpoint, filename }: ExportButtonProps) {
       // Show snackbar notification
       toast.loading('Download has started...', { duration: 2000 })
       
+      // Build query params
+      const params = new URLSearchParams({ format })
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString())
+        }
+      })
+      
       // Make API request for export
-      const response = await api.get(`${endpoint}?format=${format}`, {
+      const response = await api.get(`${endpoint}?${params.toString()}`, {
         responseType: 'blob'
       })
       

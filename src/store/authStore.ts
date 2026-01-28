@@ -6,7 +6,7 @@ import { User } from '../types'
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<User>
   logout: () => void
   fetchUser: () => Promise<void>
   updateUser: (user: User) => void
@@ -27,7 +27,10 @@ export const useAuthStore = create<AuthState>()(
 
         // Fetch user details
         const userResponse = await api.get('/staff/users/me/')
-        set({ user: userResponse.data, isAuthenticated: true })
+        const user = userResponse.data
+        set({ user, isAuthenticated: true })
+        
+        return user
       },
 
       logout: () => {

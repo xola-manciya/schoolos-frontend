@@ -20,6 +20,7 @@ import {
   ExclamationTriangleIcon,
   BuildingOfficeIcon,
   FlagIcon,
+  DocumentChartBarIcon,
 } from '@heroicons/react/24/outline'
 
 export default function Layout() {
@@ -54,11 +55,24 @@ export default function Layout() {
       }
       
       try {
-        const response = await api.get('/general/schools/me/')
+        const response = await api.get('/general/schools/me/', {
+          // Suppress error logging for 404s on this endpoint
+          validateStatus: (status) => status < 500
+        })
+        
+        if (response.status === 404) {
+          setSchoolName('Pending Setup')
+          return
+        }
+        
         setVerificationStatus(response.data.verification_status)
         setSchoolName(response.data.name)
-      } catch (error) {
-        console.error('Failed to fetch school status:', error)
+      } catch (error: any) {
+        // Only log unexpected errors (not 404)
+        if (error.response?.status !== 404) {
+          console.error('Failed to fetch school status:', error)
+        }
+        setSchoolName('Pending Setup')
       }
     }
 
@@ -117,6 +131,7 @@ export default function Layout() {
         { name: 'Dashboard', href: '/app', icon: HomeIcon, featureKey: null },
         { name: 'Students', href: '/app/students', icon: UserGroupIcon, featureKey: 'students' },
         { name: 'Payments', href: '/app/payments', icon: BanknotesIcon, featureKey: 'payments' },
+        { name: 'Payment Report', href: '/app/payment-report', icon: DocumentChartBarIcon, featureKey: null },
       ]
     }
     
@@ -126,6 +141,7 @@ export default function Layout() {
         { name: 'Dashboard', href: '/app', icon: HomeIcon, featureKey: null },
         { name: 'Students', href: '/app/students', icon: UserGroupIcon, featureKey: 'students' },
         { name: 'Payments', href: '/app/payments', icon: BanknotesIcon, featureKey: 'payments' },
+        { name: 'Payment Report', href: '/app/payment-report', icon: DocumentChartBarIcon, featureKey: null },
       ]
     }
     
@@ -135,6 +151,7 @@ export default function Layout() {
         { name: 'Dashboard', href: '/app', icon: HomeIcon, featureKey: null },
         { name: 'Students', href: '/app/students', icon: UserGroupIcon, featureKey: 'students' },
         { name: 'Payments', href: '/app/payments', icon: BanknotesIcon, featureKey: 'payments' },
+        { name: 'Payment Report', href: '/app/payment-report', icon: DocumentChartBarIcon, featureKey: null },
       ]
     }
     
@@ -144,6 +161,7 @@ export default function Layout() {
       { name: 'Students', href: '/app/students', icon: UserGroupIcon, featureKey: 'students' },
       { name: 'Staff', href: '/app/staff', icon: UsersIcon, featureKey: 'staff' },
       { name: 'Payments', href: '/app/payments', icon: BanknotesIcon, featureKey: 'payments' },
+      { name: 'Payment Report', href: '/app/payment-report', icon: DocumentChartBarIcon, featureKey: null },
       { name: 'Pictures', href: '/app/pictures', icon: PhotoIcon, featureKey: 'school_pictures' },
     ]
 
@@ -289,6 +307,20 @@ export default function Layout() {
             <UserCircleIcon className="h-5 w-5" />
             <span className="text-sm">My Profile</span>
           </Link>
+          {/* Only show School Settings for non-platform admins */}
+          {!user?.is_platform_admin && (
+            <Link
+              to="/app/school-settings"
+              className={`mb-2 flex items-center gap-2 rounded-lg px-4 py-2 ${
+                location.pathname === '/app/school-settings'
+                  ? 'bg-blue-50 text-blue-600'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <BuildingOfficeIcon className="h-5 w-5" />
+              <span className="text-sm">School Settings</span>
+            </Link>
+          )}
           <div className="mb-2 text-sm text-gray-600">
             <p className="font-medium truncate">{user?.first_name} {user?.last_name}</p>
             <p className="text-xs text-gray-500">{user?.role}</p>

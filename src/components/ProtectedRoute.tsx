@@ -1,17 +1,19 @@
 import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { User } from '../types'
-import { useIsPlatformAdmin } from '../hooks/useFeatureFlags'
+import { useIsPlatformAdmin, useFeatureFlags } from '../hooks/useFeatureFlags'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
   allowedRoles?: User['role'][]
   requirePlatformAdmin?: boolean
+  featureKey?: string
 }
 
-export default function ProtectedRoute({ children, allowedRoles, requirePlatformAdmin }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, allowedRoles, requirePlatformAdmin, featureKey }: ProtectedRouteProps) {
   const { user, isAuthenticated } = useAuthStore()
   const isPlatformAdmin = useIsPlatformAdmin()
+  const { isFeatureEnabled } = useFeatureFlags()
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -22,9 +24,14 @@ export default function ProtectedRoute({ children, allowedRoles, requirePlatform
     return <Navigate to="/app" replace />
   }
 
-  // Platform admins bypass role checks
+  // Platform admins bypass feature flag checks and role checks
   if (isPlatformAdmin) {
     return <>{children}</>
+  }
+
+  // Check if feature is enabled (if featureKey is provided)
+  if (featureKey && !isFeatureEnabled(featureKey)) {
+    return <Navigate to="/app" replace />
   }
 
   // Check if user's role is allowed

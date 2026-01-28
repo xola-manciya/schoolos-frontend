@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
+import { sanitizeText, sanitizeEmail } from '../lib/sanitize'
+import LoadingSpinner from '../components/LoadingSpinner'
+import { MagnifyingGlassIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { useDebounce } from '../hooks/useDebounce'
 import { PlusIcon, TrashIcon, PencilIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { ExportButton } from '../components/ExportButton'
 import { useSubscription } from '../hooks/useSubscription'
@@ -28,25 +32,42 @@ export default function Users() {
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [orderBy, setOrderBy] = useState<string>('email')
+  const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('asc')
+  const debouncedSearch = useDebounce(searchQuery, 500)
   const queryClient = useQueryClient()
   const subscription = useSubscription()
   
   const { register, handleSubmit, reset, formState: { errors } } = useForm<UserForm>()
 
   const { data: users = [], isLoading } = useQuery<User[]>({
-    queryKey: ['users'],
+    queryKey: ['users', debouncedSearch, orderBy, orderDirection],
     queryFn: async () => {
-      const response = await api.get('/staff/users/')
+      const ordering = orderDirection === 'desc' ? `-${orderBy}` : orderBy
+      const params = new URLSearchParams({ ordering })
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch)
+      }
+      const response = await api.get(`/staff/users/?${params.toString()}`)
       return response.data.results || response.data
     }
   })
 
   const createUserMutation = useMutation({
     mutationFn: async (data: UserForm) => {
+      // Sanitize inputs before sending to backend
+      const sanitizedData = {
+        email: sanitizeEmail(data.email),
+        first_name: sanitizeText(data.first_name),
+        last_name: sanitizeText(data.last_name),
+        role: data.role,
+      }
+      
       if (editingUser) {
-        await api.patch(`/staff/users/${editingUser.id}/`, data)
+        await api.patch(`/staff/users/${editingUser.id}/`, sanitizedData)
       } else {
-        await api.post('/staff/users/', data)
+        await api.post('/staff/users/', sanitizedData)
       }
     },
     onSuccess: () => {
@@ -109,6 +130,24 @@ export default function Users() {
     setShowModal(true)
   }
 
+  const handleSort = (field: string) => {
+    if (orderBy === field) {
+      // Toggle direction if same field
+      setOrderDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New field, default to ascending
+      setOrderBy(field)
+      setOrderDirection('asc')
+    }
+  }
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (orderBy !== field) return null
+    return orderDirection === 'asc' ? 
+      <ChevronUpIcon className="ml-1 inline-block h-4 w-4" /> : 
+      <ChevronDownIcon className="ml-1 inline-block h-4 w-4" />
+  }
+
   const handleDelete = (userId: number) => {
     setDeleteConfirm(userId)
   }
@@ -125,7 +164,7 @@ export default function Users() {
   }
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <LoadingSpinner message="Loading users..." />
   }
 
   return (
@@ -164,6 +203,22 @@ export default function Users() {
             onClick={handleAddUser}
             className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
           >
+
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search users by name, email, or role..."
+            className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          />
+        </div>
+      </div>
             <PlusIcon className="h-5 w-5" />
             Add User
           </button>
@@ -177,20 +232,48 @@ export default function Users() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    User
+                  <th 
+                    scope="col" 
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleSort('first_name')}
+                  >
+                    <div className="flex items-center">
+                      User
+                      <SortIcon field="first_name" />
+                    </div>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Email
+                  <th 
+                    scope="col" 
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleSort('email')}
+                  >
+                    <div className="flex items-center">
+                      Email
+                      <SortIcon field="email" />
+                    </div>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Role
+                  <th 
+                    scope="col" 
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleSort('role')}
+                  >
+                    <div className="flex items-center">
+                      Role
+                      <SortIcon field="role" />
+                    </div>
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Date Joined
+                  <th 
+                    scope="col" 
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleSort('date_joined')}
+                  >
+                    <div className="flex items-center">
+                      Date Joined
+                      <SortIcon field="date_joined" />
+                    </div>
                   </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                     Actions
@@ -344,6 +427,9 @@ export default function Users() {
                 {editingUser 
                   ? 'Update user information' 
                   : 'An email invitation will be sent with login credentials'}
+              </p>
+              <p className="mt-2 text-sm text-gray-500">
+                <span className="text-red-500">*</span> indicates required fields
               </p>
             </div>
             

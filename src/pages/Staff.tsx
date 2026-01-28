@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-hot-toast'
 import api from '../lib/api'
 import { StaffProfile, Leave } from '../types'
+import { sanitizeText, sanitizeEmail, sanitizePhone } from '../lib/sanitize'
 import { ExportButton } from '../components/ExportButton'
+import LoadingSpinner from '../components/LoadingSpinner'
+import { MagnifyingGlassIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { useDebounce } from '../hooks/useDebounce'
 
 type LeaveFilter = 'all' | 'on-leave' | 'active'
 
@@ -20,6 +24,7 @@ interface StaffForm {
   gender?: 'M' | 'F' | 'O'
   address?: string
   department?: string
+  grade_teaching?: string
   date_of_joining?: string
   salary?: number
 }
@@ -27,13 +32,23 @@ interface StaffForm {
 export default function Staff() {
   const [filter, setFilter] = useState<LeaveFilter>('all')
   const [showModal, setShowModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [orderBy, setOrderBy] = useState<string>('employee_id')
+  const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('asc')
+  const debouncedSearch = useDebounce(searchQuery, 500)
   const queryClient = useQueryClient()
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<StaffForm>()
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<StaffForm>()
+  const selectedRole = watch('role')
 
   const { data: staffList, isLoading: staffLoading } = useQuery<StaffProfile[]>({
-    queryKey: ['staff'],
+    queryKey: ['staff', debouncedSearch, orderBy, orderDirection],
     queryFn: async () => {
-      const response = await api.get('/staff/')
+      const ordering = orderDirection === 'desc' ? `-${orderBy}` : orderBy
+      const params = new URLSearchParams({ ordering })
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch)
+      }
+      const response = await api.get(`/staff/profiles/?${params.toString()}`)
       const data = response.data
       // Handle both array and paginated response
       if (Array.isArray(data)) return data
@@ -89,24 +104,26 @@ export default function Staff() {
       
       // Create user with all fields (user + profile) in one request
       // The backend UserSerializer now accepts profile fields
+      // Sanitize all text inputs before sending to backend
       await api.post('/staff/users/', {
         // User fields
-        username: data.email.split('@')[0],
-        email: data.email,
+        username: sanitizeEmail(data.email).split('@')[0],
+        email: sanitizeEmail(data.email),
         password: generatedPassword,
         password2: generatedPassword,
-        first_name: data.first_name,
-        last_name: data.last_name,
+        first_name: sanitizeText(data.first_name),
+        last_name: sanitizeText(data.last_name),
         role: data.role,
-        phone_number: data.phone || '',
-        id_number: data.id_number || '',
+        phone_number: data.phone ? sanitizePhone(data.phone) : '',
+        id_number: data.id_number ? sanitizeText(data.id_number) : '',
         
         // StaffProfile fields
-        employee_id: data.employee_id,
+        employee_id: sanitizeText(data.employee_id),
         date_of_birth: data.date_of_birth || null,
         gender: data.gender || 'O',
         address: data.address || '',
         department: data.department || '',
+        grade_teaching: data.grade_teaching || '',
         date_of_joining: data.date_of_joining || new Date().toISOString().split('T')[0],
         salary: data.salary || 0,
       })
@@ -128,8 +145,26 @@ export default function Staff() {
     createStaffMutation.mutate(data)
   }
 
+  const handleSort = (field: string) => {
+    if (orderBy === field) {
+      // Toggle direction if same field
+      setOrderDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New field, default to ascending
+      setOrderBy(field)
+      setOrderDirection('asc')
+    }
+  }
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (orderBy !== field) return null
+    return orderDirection === 'asc' ? 
+      <ChevronUpIcon className="ml-1 inline-block h-4 w-4" /> : 
+      <ChevronDownIcon className="ml-1 inline-block h-4 w-4" />
+  }
+
   if (staffLoading) {
-    return <div>Loading...</div>
+    return <LoadingSpinner message="Loading staff..." />
   }
 
   return (
@@ -144,6 +179,22 @@ export default function Staff() {
           >
             Add Staff
           </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search staff by name, email, or employee ID..."
+            className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          />
         </div>
       </div>
 
@@ -237,17 +288,45 @@ export default function Staff() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Employee ID
+                  <th 
+                    scope="col" 
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleSort('employee_id')}
+                  >
+                    <div className="flex items-center">
+                      Employee ID
+                      <SortIcon field="employee_id" />
+                    </div>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Name
+                  <th 
+                    scope="col" 
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleSort('user__first_name')}
+                  >
+                    <div className="flex items-center">
+                      Name
+                      <SortIcon field="user__first_name" />
+                    </div>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Position
+                  <th 
+                    scope="col" 
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleSort('position')}
+                  >
+                    <div className="flex items-center">
+                      Position
+                      <SortIcon field="position" />
+                    </div>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Department
+                  <th 
+                    scope="col" 
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleSort('department')}
+                  >
+                    <div className="flex items-center">
+                      Department
+                      <SortIcon field="department" />
+                    </div>
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Status
@@ -335,7 +414,11 @@ export default function Staff() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 sm:p-6">
-            <h2 className="mb-4 text-xl font-bold text-gray-900 sm:text-2xl">Add Staff Member</h2>
+            <h2 className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl">Add Staff Member</h2>
+            <p className="mb-2 text-sm text-gray-600">Add a new staff member. They will receive login credentials via email.</p>
+            <p className="mb-4 text-sm text-gray-500">
+              <span className="text-red-500">*</span> indicates required fields
+            </p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {/* User Account Details */}
@@ -343,7 +426,7 @@ export default function Staff() {
                 <h3 className="mb-3 font-semibold text-gray-900">Account Details</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Email *</label>
+                    <label className="block text-sm font-medium text-gray-700">Email <span className="text-red-500">*</span></label>
                     <input
                       type="email"
                       {...register('email', { required: 'Email is required' })}
@@ -354,7 +437,7 @@ export default function Staff() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Role *</label>
+                    <label className="block text-sm font-medium text-gray-700">Role <span className="text-red-500">*</span></label>
                     <select
                       {...register('role', { required: 'Role is required' })}
                       className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
@@ -376,7 +459,7 @@ export default function Staff() {
                 <h3 className="mb-3 font-semibold text-gray-900">Personal Details</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">First Name *</label>
+                    <label className="block text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       {...register('first_name', { required: 'First name is required' })}
@@ -386,7 +469,7 @@ export default function Staff() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Last Name *</label>
+                    <label className="block text-sm font-medium text-gray-700">Last Name <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       {...register('last_name', { required: 'Last name is required' })}
@@ -396,17 +479,7 @@ export default function Staff() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Employee ID *</label>
-                    <input
-                      type="text"
-                      {...register('employee_id', { required: 'Employee ID is required' })}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
-                    />
-                    {errors.employee_id && <p className="mt-1 text-xs text-red-600">{errors.employee_id.message}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">ID Number *</label>
+                    <label className="block text-sm font-medium text-gray-700">ID Number <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       {...register('id_number', { required: 'ID number is required' })}
@@ -469,6 +542,19 @@ export default function Staff() {
                       className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
                     />
                   </div>
+
+                  {selectedRole === 'TEACHER' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Grade Teaching</label>
+                      <input
+                        type="text"
+                        {...register('grade_teaching')}
+                        placeholder="e.g., 8, 9-10, R"
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">Grade(s) this teacher is responsible for</p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Date of Joining</label>

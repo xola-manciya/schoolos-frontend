@@ -81,12 +81,15 @@ export default function ResetPassword() {
               Reset Password
             </h2>
             <p className="mt-2 text-gray-600">Enter your new password below</p>
+            <p className="mt-2 text-sm text-gray-500">
+              <span className="text-red-500">*</span> indicates required fields
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                New Password
+                New Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -134,7 +137,7 @@ export default function ResetPassword() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm New Password
+                Confirm New Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input

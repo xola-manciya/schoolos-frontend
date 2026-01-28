@@ -15,13 +15,27 @@ const api = axios.create({
   },
 })
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and CSRF protection
 api.interceptors.request.use(
   (config) => {
+    // Add JWT token
     const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+    // Add CSRF token for non-GET requests (defense in depth)
+    if (config.method && config.method.toLowerCase() !== 'get') {
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1]
+      
+      if (csrfToken) {
+        config.headers['X-CSRFToken'] = csrfToken
+      }
+    }
+    
     return config
   },
   (error) => Promise.reject(error)
@@ -53,10 +67,10 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Don't try to refresh tokens for auth endpoints (login/register)
-    const isAuthEndpoint = originalRequest.url?.includes('/auth/') && 
-                           (originalRequest.url?.includes('/login') || 
-                            originalRequest.url?.includes('/registration'))
+    // Don't try to refresh tokens for auth endpoints (login/register/token)
+    const isAuthEndpoint = originalRequest.url?.includes('/auth/token/') || 
+                           originalRequest.url?.includes('/auth/registration/') ||
+                           originalRequest.url?.includes('/auth/login/')
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true

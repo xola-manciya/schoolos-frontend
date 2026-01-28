@@ -14,26 +14,15 @@ export default function ForgotPassword() {
     setLoading(true)
 
     try {
-      // First check if email exists
-      try {
-        await api.post('/staff/check-email/', { email })
-      } catch (emailCheckError: any) {
-        if (emailCheckError.response?.status === 404) {
-          toast.error(
-            'This email is not registered with SchoolOS. Please register your school or contact your school administrator.',
-            { duration: 6000 }
-          )
-          setLoading(false)
-          return
-        }
-      }
-
-      // If email exists, send reset email
+      // Always send the request, backend will handle whether email exists
       await api.post('/auth/password/reset/', { email })
+      
+      // Always show success message for security (don't reveal if email exists)
       setSent(true)
-      toast.success('Password reset email sent! Check your inbox.')
+      toast.success('If an account exists with this email, you will receive password reset instructions.')
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to send reset email')
+      // Generic error message
+      toast.error('An error occurred. Please try again later.')
     } finally {
       setLoading(false)
     }
@@ -53,9 +42,9 @@ export default function ForgotPassword() {
               Check Your Email
             </h2>
             <p className="text-gray-600 mb-6">
-              We've sent password reset instructions to <strong>{email}</strong>
+              If an account exists with <strong>{email}</strong>, you will receive password reset instructions shortly.
             </p>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 mb-4">
               Didn't receive the email? Check your spam folder or{' '}
               <button
                 onClick={() => setSent(false)}
@@ -63,6 +52,12 @@ export default function ForgotPassword() {
               >
                 try again
               </button>
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+                Register your school
+              </Link>
             </p>
             <Link
               to="/login"
@@ -96,14 +91,17 @@ export default function ForgotPassword() {
               Forgot Password?
             </h2>
             <p className="mt-2 text-gray-600">
-              Enter your email and we'll send you a reset link
+              Enter your email and we'll send you reset instructions if your account exists
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              <span className="text-red-500">*</span> indicates required fields
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Email Address
+                Email Address <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -113,6 +111,12 @@ export default function ForgotPassword() {
                 placeholder="you@school.com"
                 required
               />
+              <p className="mt-2 text-xs text-gray-500">
+                Don't have an account?{' '}
+                <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+                  Register your school here
+                </Link>
+              </p>
             </div>
 
             <button

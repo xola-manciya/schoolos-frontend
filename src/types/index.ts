@@ -9,6 +9,7 @@ export interface User {
   school?: School
   is_trial?: boolean
   is_platform_admin?: boolean
+  email_verified?: boolean
 }
 
 export interface School {
@@ -35,6 +36,7 @@ export interface School {
   payment_months_per_year: number
   payment_start_month: number
   days_until_expiry?: number
+  created_at: string
 }
 
 export interface SubscriptionLimits {
@@ -83,6 +85,7 @@ export interface Student {
   payment_status: 'PAID' | 'PENDING' | 'PARTIAL' | 'OVERDUE'
   total_fees: number
   amount_paid: number
+  expected_monthly_payment: number
   balance_due: number
   months_paid: number
   is_active: boolean
