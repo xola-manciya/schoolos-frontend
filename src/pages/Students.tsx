@@ -714,7 +714,7 @@ export default function Students() {
                       </p>
                       <p className="mt-1">
                         <strong>{existingStudent.student.first_name} {existingStudent.student.last_name}</strong>
-                        {existingStudent.student.grade && ` - Grade ${existingStudent.student.grade}`}
+                        {existingStudent.student.class_name && ` - ${existingStudent.student.class_name}`}
                       </p>
                       <p className="mt-2 text-xs">
                         Each student must have a unique ID number. Please verify the ID number or edit the existing student record.

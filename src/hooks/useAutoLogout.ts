@@ -9,7 +9,7 @@ import { useAuthStore } from '../store/authStore'
 export const useAutoLogout = (timeoutMinutes: number = 30) => {
   const { isAuthenticated, logout } = useAuthStore()
   const navigate = useNavigate()
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<number | null>(null)
   const timeoutMs = timeoutMinutes * 60 * 1000
 
   const resetTimer = () => {
