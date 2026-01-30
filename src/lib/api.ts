@@ -61,7 +61,7 @@ api.interceptors.response.use(
 
     // Check if user needs to complete school registration
     if (error.response?.status === 403 && error.response?.data?.needs_school_setup) {
-      window.location.href = '/complete-registration'
+      window.location.href = '/school-details'
       return Promise.reject(error)
     }
 

@@ -40,7 +40,7 @@ export default function Layout() {
   // Check if user needs to complete school setup
   useEffect(() => {
     if (user?.needs_school_setup && !isPlatformAdmin) {
-      navigate('/complete-registration', { replace: true })
+      navigate('/school-details', { replace: true })
     }
   }, [user, isPlatformAdmin, navigate])
 

@@ -43,7 +43,6 @@ import AllSchools from './pages/AllSchools'
 import AllUsers from './pages/AllUsers'
 import FeatureFlags from './pages/FeatureFlags'
 import MonthlyPaymentReport from './pages/MonthlyPaymentReport'
-import CompleteRegistration from './pages/CompleteRegistration'
 
 function App() {
   const { isAuthenticated, user, fetchUser, logout } = useAuthStore()
@@ -135,13 +134,6 @@ function App() {
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/unsubscribe" element={<UnsubscribePage />} />
         <Route path="/onboarding/payment-callback" element={<PaymentCallback />} />
-        
-        {/* Complete Registration - Requires auth but not school setup */}
-        {isAuthenticated ? (
-          <Route path="/complete-registration" element={<CompleteRegistration />} />
-        ) : (
-          <Route path="/complete-registration" element={<Navigate to="/login" replace />} />
-        )}
         
         {isAuthenticated ? (
           <Route path="/app" element={<Layout />}>

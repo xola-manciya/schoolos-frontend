@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children, allowedRoles, requirePlatform
 
   // Check if user needs to complete school registration (unless they're a platform admin)
   if (!requirePlatformAdmin && user?.needs_school_setup && !isPlatformAdmin) {
-    return <Navigate to="/complete-registration" replace />
+    return <Navigate to="/school-details" replace />
   }
 
   // Check platform admin requirement
