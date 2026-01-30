@@ -59,6 +59,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
+    // Check if user needs to complete school registration
+    if (error.response?.status === 403 && error.response?.data?.needs_school_setup) {
+      window.location.href = '/complete-registration'
+      return Promise.reject(error)
+    }
+
     // Check for trial expiration (403 with expired flag)
     if (error.response?.status === 403 && error.response?.data?.expired) {
       // Clear tokens and redirect to billing page

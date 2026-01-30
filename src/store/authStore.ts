@@ -30,6 +30,12 @@ export const useAuthStore = create<AuthState>()(
         const user = userResponse.data
         set({ user, isAuthenticated: true })
         
+        // Check if user needs to complete school registration
+        if (user.needs_school_setup && !user.is_platform_admin) {
+          // This will be handled by ProtectedRoute redirect
+          return user
+        }
+        
         return user
       },
 

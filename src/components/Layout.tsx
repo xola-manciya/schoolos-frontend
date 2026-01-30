@@ -37,6 +37,13 @@ export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  // Check if user needs to complete school setup
+  useEffect(() => {
+    if (user?.needs_school_setup && !isPlatformAdmin) {
+      navigate('/complete-registration', { replace: true })
+    }
+  }, [user, isPlatformAdmin, navigate])
+
   // Check for subscription cancellation on mount
   useEffect(() => {
     const justCanceled = localStorage.getItem('subscription_just_canceled')

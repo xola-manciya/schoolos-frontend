@@ -10,6 +10,7 @@ export interface User {
   is_trial?: boolean
   is_platform_admin?: boolean
   email_verified?: boolean
+  needs_school_setup?: boolean
 }
 
 export interface School {

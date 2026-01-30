@@ -38,6 +38,14 @@ export default function Login() {
         return
       }
       
+      // Check if user needs to complete school setup
+      if (user && user.needs_school_setup && !user.is_platform_admin) {
+        toast.success('Login successful! Please complete your school registration.')
+        navigate('/complete-registration')
+        setLoading(false)
+        return
+      }
+      
       toast.success('Login successful!')
       navigate('/app')
     } catch (error: any) {
