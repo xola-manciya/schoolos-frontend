@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useAuthStore } from '../store/authStore'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
-import SEO from '../components/SEO'
+import { SEO } from '../components/SEO'
 
 interface SchoolData {
   name: string
@@ -51,7 +51,7 @@ export default function CompleteRegistration() {
     setIsSubmitting(true)
     
     try {
-      const response = await api.post('/general/schools/complete-registration/', data)
+      await api.post('/general/schools/complete-registration/', data)
       
       toast.success('School registration completed successfully!')
       
