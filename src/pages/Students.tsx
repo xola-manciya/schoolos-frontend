@@ -245,16 +245,27 @@ export default function Students() {
     mutationFn: async (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      const response = await api.post('/students/bulk-upload/', formData, {
+      const response = await api.post('/students/bulk_import/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       return response.data
     },
     onSuccess: (data) => {
-      toast.success(`Successfully imported ${data.created_count} students!`)
-      if (data.errors?.length > 0) {
-        toast.error(`${data.errors.length} students failed to import`)
+      // Show detailed results
+      const successMsg = data.success_count > 0 
+        ? `Successfully imported ${data.success_count} student${data.success_count !== 1 ? 's' : ''}!`
+        : 'No students were imported.'
+      
+      if (data.success_count > 0) {
+        toast.success(successMsg)
       }
+      
+      if (data.error_count > 0) {
+        toast.error(`${data.error_count} student${data.error_count !== 1 ? 's' : ''} failed to import. Check console for details.`)
+        console.error('Import errors:', data.errors)
+        console.error('Skipped students:', data.skipped_students)
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['students'] })
       setExcelFile(null)
       setShowModal(false)
@@ -767,18 +778,23 @@ export default function Students() {
               /* Excel Upload Mode */
               <div className="space-y-4">
                 <div className="rounded-lg bg-blue-50 p-4">
-                  <h3 className="mb-2 font-semibold text-blue-900">Excel Format Requirements:</h3>
+                  <h3 className="mb-2 font-semibold text-blue-900">Excel Format (Document 1 - SA Department of Education)</h3>
+                  <p className="mb-2 text-sm text-blue-800">The system will automatically map these column names:</p>
                   <ul className="list-inside list-disc space-y-1 text-sm text-blue-800">
-                    <li>Columns: student_id, first_name, last_name, id_number, date_of_birth, gender, address</li>
-                    <li>Additional: parent_name, parent_phone, parent_email, parent_id_number, enrollment_date, total_fees</li>
-                    <li>Date format: YYYY-MM-DD</li>
-                    <li>Gender: M, F, or O</li>
+                    <li><strong>Required:</strong> Learner Surname, Learner First Name, ID Number, Birth Date, Gender</li>
+                    <li><strong>Optional:</strong> Address, Email, Class/Grade, Cell Phone Number (parent)</li>
+                    <li><strong>Parent Fields:</strong> Parent Name, Parent Email, Parent ID Number (all optional)</li>
+                    <li><strong>Date Format:</strong> YYYY/MM/DD or YYYY-MM-DD</li>
+                    <li><strong>Gender:</strong> M/Male/1 for Male, F/Female/2 for Female</li>
                   </ul>
+                  <p className="mt-3 text-xs text-blue-700">
+                    💡 <strong>Tip:</strong> Column names are case-insensitive. The system will match common variations automatically.
+                  </p>
                 </div>
 
                 <input
                   type="file"
-                  accept=".xlsx,.xls,.csv"
+                  accept=".xlsx,.xls"
                   onChange={(e) => setExcelFile(e.target.files?.[0] || null)}
                   className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-700 hover:file:bg-primary-100"
                 />
@@ -874,16 +890,16 @@ export default function Students() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Parent Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700">Parent Name</label>
                     <input
-                      {...register('parent_name', { required: true })}
+                      {...register('parent_name')}
                       className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Parent Phone <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700">Parent Phone</label>
                     <input
-                      {...register('parent_phone', { required: true })}
+                      {...register('parent_phone')}
                       className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
                     />
                   </div>
@@ -896,9 +912,9 @@ export default function Students() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Parent ID Number <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700">Parent ID Number</label>
                     <input
-                      {...register('parent_id_number', { required: true })}
+                      {...register('parent_id_number')}
                       className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
                     />
                   </div>

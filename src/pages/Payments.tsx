@@ -153,12 +153,15 @@ export default function Payments() {
 
   const unmarkPaymentMutation = useMutation({
     mutationFn: async (paymentId: number) => {
-      await api.delete(`/payments/list/${paymentId}/`)
+      const response = await api.delete(`/payments/list/${paymentId}/`)
+      return response
     },
     onSuccess: () => {
       toast.success('Payment removed successfully!')
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-defaulters'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-history'] })
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string; error?: string } } }
@@ -176,6 +179,8 @@ export default function Payments() {
       toast.success('All student payments deleted successfully!')
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-defaulters'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-history'] })
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string; error?: string } } }
@@ -214,6 +219,8 @@ export default function Payments() {
       
       if (payment) {
         unmarkPaymentMutation.mutate(payment.id)
+      } else {
+        toast.error('Payment record not found for this month')
       }
     } else {
       setSelectedStudent(studentId)
