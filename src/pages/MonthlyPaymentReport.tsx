@@ -228,9 +228,6 @@ export default function MonthlyPaymentReport() {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Student ID
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Name
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -250,9 +247,6 @@ export default function MonthlyPaymentReport() {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {unpaidStudents.map((student) => (
                             <tr key={student.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {student.student_id}
-                              </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {student.first_name} {student.last_name}
                               </td>
@@ -291,9 +285,6 @@ export default function MonthlyPaymentReport() {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Student ID
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Name
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -310,9 +301,6 @@ export default function MonthlyPaymentReport() {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {paidStudents.map((student) => (
                             <tr key={student.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {student.student_id}
-                              </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {student.student_name || `${student.first_name} ${student.last_name}`}
                               </td>

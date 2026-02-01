@@ -361,7 +361,6 @@ export default function Payments() {
                         <div className="mb-3 flex items-start justify-between">
                           <div>
                             <p className="font-semibold text-gray-900">{student.full_name}</p>
-                            <p className="text-sm text-gray-500">{student.student_id}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <span
@@ -467,7 +466,6 @@ export default function Payments() {
                             <tr key={student.id} className={`hover:bg-gray-50 ${isEditing ? 'bg-blue-50' : ''}`}>
                               <td className="sticky left-0 z-10 bg-white whitespace-nowrap px-4 py-3 text-sm text-gray-900 group-hover:bg-gray-50">
                                 <div className="font-medium">{student.full_name}</div>
-                                <div className="text-xs text-gray-500">{student.student_id}</div>
                               </td>
                               {monthlyPayments.map((monthData) => (
                                 <td key={monthData.month} className="px-3 py-3 text-center">
@@ -865,7 +863,6 @@ export default function Payments() {
                     <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                       <p className="text-sm text-gray-600">Student</p>
                       <p className="text-lg font-semibold text-gray-900">{student.full_name}</p>
-                      <p className="text-sm text-gray-500">{student.student_id}</p>
                     </div>
 
                     {/* Summary Cards */}
