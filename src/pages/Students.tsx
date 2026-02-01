@@ -56,6 +56,7 @@ export default function Students() {
   const [orderBy, setOrderBy] = useState<string>('student_id')
   const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('asc')
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString())
+  const [archiveFilter, setArchiveFilter] = useState<'active' | 'archived' | 'all'>('active')
   const debouncedSearch = useDebounce(searchQuery, 500)
   const queryClient = useQueryClient()
   const { register, handleSubmit, reset, setValue } = useForm<StudentForm>()
@@ -123,7 +124,7 @@ export default function Students() {
   }
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedResponse>({
-    queryKey: ['students', currentPage, pageSize, debouncedSearch, orderBy, orderDirection, yearFilter],
+    queryKey: ['students', currentPage, pageSize, debouncedSearch, orderBy, orderDirection, yearFilter, archiveFilter],
     queryFn: async () => {
       const ordering = orderDirection === 'desc' ? `-${orderBy}` : orderBy
       const params = new URLSearchParams({
@@ -136,6 +137,12 @@ export default function Students() {
       }
       if (yearFilter) {
         params.append('year', yearFilter)
+      }
+      // Add archive filter
+      if (archiveFilter === 'archived') {
+        params.append('archived_only', 'true')
+      } else if (archiveFilter === 'all') {
+        params.append('show_archived', 'true')
       }
       const response = await api.get(`/students/?${params.toString()}`)
       return response.data
@@ -303,6 +310,19 @@ export default function Students() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to archive student')
+    },
+  })
+
+  const unarchiveStudentMutation = useMutation({
+    mutationFn: async (studentId: number) => {
+      await api.post(`/students/${studentId}/unarchive/`)
+    },
+    onSuccess: () => {
+      toast.success('Student unarchived successfully!')
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to unarchive student')
     },
   })
 
@@ -574,6 +594,18 @@ export default function Students() {
           />
         </div>
         <select
+          value={archiveFilter}
+          onChange={(e) => {
+            setArchiveFilter(e.target.value as 'active' | 'archived' | 'all')
+            setCurrentPage(1)
+          }}
+          className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+        >
+          <option value="active">Active Students</option>
+          <option value="archived">Archived Only</option>
+          <option value="all">All Students</option>
+        </select>
+        <select
           value={yearFilter}
           onChange={(e) => {
             setYearFilter(e.target.value)
@@ -644,16 +676,6 @@ export default function Students() {
                     <th 
                       scope="col" 
                       className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
-                      onClick={() => handleSort('student_id')}
-                    >
-                      <div className="flex items-center">
-                        Student ID
-                        <SortIcon field="student_id" />
-                      </div>
-                    </th>
-                    <th 
-                      scope="col" 
-                      className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
                       onClick={() => handleSort('first_name')}
                     >
                       <div className="flex items-center">
@@ -696,9 +718,6 @@ export default function Students() {
                   {students.map((student) => (
                     <tr key={student.id} className="hover:bg-gray-50">
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                        {student.student_id}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                         {student.full_name}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
@@ -727,12 +746,21 @@ export default function Students() {
                           >
                             Edit
                           </button>
-                          <button
-                            onClick={() => handleArchive(student)}
-                            className="text-orange-600 hover:text-orange-800 font-medium mr-4"
-                          >
-                            Archive
-                          </button>
+                          {student.is_archived ? (
+                            <button
+                              onClick={() => unarchiveStudentMutation.mutate(student.id)}
+                              className="text-green-600 hover:text-green-800 font-medium mr-4"
+                            >
+                              Unarchive
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleArchive(student)}
+                              className="text-orange-600 hover:text-orange-800 font-medium mr-4"
+                            >
+                              Archive
+                            </button>
+                          )}
                           <button
                             onClick={() => handleDelete(student)}
                             className="text-red-600 hover:text-red-800 font-medium"
