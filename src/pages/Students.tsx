@@ -59,6 +59,12 @@ export default function Students() {
   const debouncedSearch = useDebounce(searchQuery, 500)
   const queryClient = useQueryClient()
   const { register, handleSubmit, reset, setValue } = useForm<StudentForm>()
+  const [importResults, setImportResults] = useState<{
+    success_count: number
+    error_count: number
+    errors: string[]
+    skipped_students: any[]
+  } | null>(null)
 
   // Parse South African ID number to extract date of birth
   const parseIdNumber = (idNumber: string) => {
@@ -251,7 +257,10 @@ export default function Students() {
       return response.data
     },
     onSuccess: (data) => {
-      // Show detailed results
+      // Store import results for display
+      setImportResults(data)
+      
+      // Show success toast
       const successMsg = data.success_count > 0 
         ? `Successfully imported ${data.success_count} student${data.success_count !== 1 ? 's' : ''}!`
         : 'No students were imported.'
@@ -260,12 +269,7 @@ export default function Students() {
         toast.success(successMsg)
       }
       
-      if (data.error_count > 0) {
-        toast.error(`${data.error_count} student${data.error_count !== 1 ? 's' : ''} failed to import. Check console for details.`)
-        console.error('Import errors:', data.errors)
-        console.error('Skipped students:', data.skipped_students)
-      }
-      
+      // Don't show generic error toast, let the error banner handle it
       queryClient.invalidateQueries({ queryKey: ['students'] })
       setExcelFile(null)
       setShowModal(false)
@@ -403,6 +407,157 @@ export default function Students() {
           </button>
         </div>
       </div>
+
+      {/* Import Results Banner */}
+      {importResults && (importResults.error_count > 0 || importResults.skipped_students?.length > 0) && (
+        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Import Summary: {importResults.success_count || 0} imported, {importResults.skipped_students?.length || 0} skipped
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                {importResults.errors.some(err => err.includes('currently registered as a learner at')) && (
+                  <div className="mb-3 rounded-md bg-yellow-100 p-3 border border-yellow-300">
+                    <p className="font-semibold text-yellow-900 mb-1">⚠️ Some Students Are Already Enrolled Elsewhere</p>
+                    <p className="mb-2">We found students in your file who are currently enrolled at other schools.</p>
+                    <p className="font-semibold text-yellow-900 mb-1">How to fix this:</p>
+                    <ol className="list-decimal ml-5 mt-1 space-y-1">
+                      <li>Contact the previous school to transfer the student</li>
+                      <li>Ask them to archive or end the student's enrollment</li>
+                      <li>Upload your file again after the transfer is complete</li>
+                    </ol>
+                  </div>
+                )}
+                
+                {/* Categorize and show errors in user-friendly way */}
+                {importResults.skipped_students && importResults.skipped_students.length > 0 && (
+                  <div className="mt-3">
+                    <p className="font-semibold text-yellow-900 mb-2">
+                      {importResults.skipped_students.length} student{importResults.skipped_students.length !== 1 ? 's were' : ' was'} skipped:
+                    </p>
+                    <div className="space-y-2">
+                      {(() => {
+                        // Group by reason
+                        const grouped = importResults.skipped_students.reduce((acc: any, student: any) => {
+                          // Get friendly reason
+                          let reason = student.reason || 'Missing required information'
+                          
+                          // Parse error messages for better categorization
+                          if (student.errors && student.errors.length > 0) {
+                            const errorText = student.errors[0]
+                            if (errorText.includes('First name') || errorText.includes('Last name') || 
+                                errorText.includes('ID number') || errorText.includes('Date of birth')) {
+                              reason = 'Missing required information'
+                            }
+                          }
+                          
+                          if (!acc[reason]) acc[reason] = []
+                          acc[reason].push(student)
+                          return acc
+                        }, {})
+                        
+                        return Object.entries(grouped).map(([reason, students]: [string, any]) => (
+                          <div key={reason} className="rounded bg-white p-2 border border-yellow-200">
+                            <p className="font-medium text-yellow-900 mb-1">
+                              {reason === 'Already exists in database' && '✓ Already in your system'}
+                              {reason === 'Missing required information' && '⚠️ Incomplete information'}
+                              {!['Already exists in database', 'Missing required information'].includes(reason) && `• ${reason}`}
+                              <span className="ml-2 text-sm font-normal">({students.length} student{students.length !== 1 ? 's' : ''})</span>
+                            </p>
+                            {students.length <= 10 ? (
+                              <ul className="ml-4 text-xs space-y-1">
+                                {students.map((s: any, i: number) => {
+                                  // Extract student info from data if available
+                                  const studentName = s.name || 
+                                    (s.data?.first_name && s.data?.last_name ? 
+                                      `${s.data.first_name} ${s.data.last_name}` : 
+                                      `Row ${s.row}`)
+                                  
+                                  const studentId = s.student_id || s.data?.id_number
+                                  
+                                  // Get specific missing fields for incomplete info
+                                  let missingInfo = ''
+                                  if (reason === 'Missing required information' && s.errors) {
+                                    const fields = []
+                                    if (s.errors.some((e: string) => e.includes('First name'))) fields.push('first name')
+                                    if (s.errors.some((e: string) => e.includes('Last name'))) fields.push('last name')
+                                    if (s.errors.some((e: string) => e.includes('ID number'))) fields.push('ID number')
+                                    if (s.errors.some((e: string) => e.includes('Date of birth'))) fields.push('date of birth')
+                                    if (fields.length > 0) {
+                                      missingInfo = ` - Missing: ${fields.join(', ')}`
+                                    }
+                                  }
+                                  
+                                  return (
+                                    <li key={i}>
+                                      {studentName}
+                                      {studentId && ` (ID: ${studentId})`}
+                                      {missingInfo && <span className="text-yellow-700">{missingInfo}</span>}
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                            ) : (
+                              <details className="ml-4 text-xs">
+                                <summary className="cursor-pointer hover:text-yellow-900">Show all {students.length} students</summary>
+                                <ul className="mt-1 space-y-1">
+                                  {students.map((s: any, i: number) => {
+                                    const studentName = s.name || 
+                                      (s.data?.first_name && s.data?.last_name ? 
+                                        `${s.data.first_name} ${s.data.last_name}` : 
+                                        `Row ${s.row}`)
+                                    
+                                    const studentId = s.student_id || s.data?.id_number
+                                    
+                                    let missingInfo = ''
+                                    if (reason === 'Missing required information' && s.errors) {
+                                      const fields = []
+                                      if (s.errors.some((e: string) => e.includes('First name'))) fields.push('first name')
+                                      if (s.errors.some((e: string) => e.includes('Last name'))) fields.push('last name')
+                                      if (s.errors.some((e: string) => e.includes('ID number'))) fields.push('ID number')
+                                      if (s.errors.some((e: string) => e.includes('Date of birth'))) fields.push('date of birth')
+                                      if (fields.length > 0) {
+                                        missingInfo = ` - Missing: ${fields.join(', ')}`
+                                      }
+                                    }
+                                    
+                                    return (
+                                      <li key={i}>
+                                        {studentName}
+                                        {studentId && ` (ID: ${studentId})`}
+                                        {missingInfo && <span className="text-yellow-700">{missingInfo}</span>}
+                                      </li>
+                                    )
+                                  })}
+                                </ul>
+                              </details>
+                            )}
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => setImportResults(null)}
+              className="ml-3 flex-shrink-0 rounded-md p-1.5 text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50"
+              aria-label="Dismiss"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search Bar and Filters */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
