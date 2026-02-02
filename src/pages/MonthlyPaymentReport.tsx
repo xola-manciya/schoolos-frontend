@@ -35,21 +35,36 @@ export default function MonthlyPaymentReport() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [activeTab, setActiveTab] = useState<'paid' | 'unpaid'>('unpaid')
+  const [gradeFilter, setGradeFilter] = useState<string>('')
 
   // Fetch unpaid students (defaulters)
   const { data: defaulters, isLoading: loadingDefaulters } = useQuery<StudentPaymentInfo[]>({
-    queryKey: ['payment-defaulters', selectedMonth, selectedYear],
+    queryKey: ['payment-defaulters', selectedMonth, selectedYear, gradeFilter],
     queryFn: async () => {
-      const response = await api.get(`/students/payment_defaulters/?month=${selectedMonth}&year=${selectedYear}`)
+      const params = new URLSearchParams({
+        month: selectedMonth.toString(),
+        year: selectedYear.toString(),
+      })
+      if (gradeFilter) {
+        params.append('grade', gradeFilter)
+      }
+      const response = await api.get(`/students/payment_defaulters/?${params.toString()}`)
       return response.data.defaulters || []
     }
   })
 
   // Fetch paid students (payment history)
   const { data: paymentHistory, isLoading: loadingHistory } = useQuery<PaymentHistoryResponse>({
-    queryKey: ['payment-history', selectedMonth, selectedYear],
+    queryKey: ['payment-history', selectedMonth, selectedYear, gradeFilter],
     queryFn: async () => {
-      const response = await api.get(`/students/payment_history/?month=${selectedMonth}&year=${selectedYear}`)
+      const params = new URLSearchParams({
+        month: selectedMonth.toString(),
+        year: selectedYear.toString(),
+      })
+      if (gradeFilter) {
+        params.append('grade', gradeFilter)
+      }
+      const response = await api.get(`/students/payment_history/?${params.toString()}`)
       return response.data
     }
   })
@@ -134,6 +149,32 @@ export default function MonthlyPaymentReport() {
                   {year}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Grade
+            </label>
+            <select
+              value={gradeFilter}
+              onChange={(e) => setGradeFilter(e.target.value)}
+              className="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            >
+              <option value="">All Grades</option>
+              <option value="R">Grade R</option>
+              <option value="1">Grade 1</option>
+              <option value="2">Grade 2</option>
+              <option value="3">Grade 3</option>
+              <option value="4">Grade 4</option>
+              <option value="5">Grade 5</option>
+              <option value="6">Grade 6</option>
+              <option value="7">Grade 7</option>
+              <option value="8">Grade 8</option>
+              <option value="9">Grade 9</option>
+              <option value="10">Grade 10</option>
+              <option value="11">Grade 11</option>
+              <option value="12">Grade 12</option>
             </select>
           </div>
         </div>

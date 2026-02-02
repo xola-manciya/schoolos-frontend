@@ -57,6 +57,7 @@ export default function Students() {
   const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('asc')
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString())
   const [archiveFilter, setArchiveFilter] = useState<'active' | 'archived' | 'all'>('active')
+  const [gradeFilter, setGradeFilter] = useState<string>('')
   const debouncedSearch = useDebounce(searchQuery, 500)
   const queryClient = useQueryClient()
   const { register, handleSubmit, reset, setValue } = useForm<StudentForm>()
@@ -124,7 +125,7 @@ export default function Students() {
   }
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedResponse>({
-    queryKey: ['students', currentPage, pageSize, debouncedSearch, orderBy, orderDirection, yearFilter, archiveFilter],
+    queryKey: ['students', currentPage, pageSize, debouncedSearch, orderBy, orderDirection, yearFilter, archiveFilter, gradeFilter],
     queryFn: async () => {
       const ordering = orderDirection === 'desc' ? `-${orderBy}` : orderBy
       const params = new URLSearchParams({
@@ -137,6 +138,9 @@ export default function Students() {
       }
       if (yearFilter) {
         params.append('year', yearFilter)
+      }
+      if (gradeFilter) {
+        params.append('grade', gradeFilter)
       }
       // Add archive filter
       if (archiveFilter === 'archived') {
@@ -604,6 +608,29 @@ export default function Students() {
           <option value="active">Active Students</option>
           <option value="archived">Archived Only</option>
           <option value="all">All Students</option>
+        </select>
+        <select
+          value={gradeFilter}
+          onChange={(e) => {
+            setGradeFilter(e.target.value)
+            setCurrentPage(1)
+          }}
+          className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+        >
+          <option value="">All Grades</option>
+          <option value="R">Grade R</option>
+          <option value="1">Grade 1</option>
+          <option value="2">Grade 2</option>
+          <option value="3">Grade 3</option>
+          <option value="4">Grade 4</option>
+          <option value="5">Grade 5</option>
+          <option value="6">Grade 6</option>
+          <option value="7">Grade 7</option>
+          <option value="8">Grade 8</option>
+          <option value="9">Grade 9</option>
+          <option value="10">Grade 10</option>
+          <option value="11">Grade 11</option>
+          <option value="12">Grade 12</option>
         </select>
         <select
           value={yearFilter}

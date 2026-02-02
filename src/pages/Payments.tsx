@@ -47,6 +47,7 @@ export default function Payments() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString())
+  const [gradeFilter, setGradeFilter] = useState<string>('')
   const queryClient = useQueryClient()
 
   const { data: payments, isLoading } = useQuery<Payment[]>({
@@ -58,7 +59,7 @@ export default function Payments() {
   })
 
   const { data: studentsData } = useQuery<PaginatedStudentsResponse>({
-    queryKey: ['students', currentPage, pageSize, yearFilter],
+    queryKey: ['students', currentPage, pageSize, yearFilter, gradeFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -66,6 +67,9 @@ export default function Payments() {
       })
       if (yearFilter) {
         params.append('year', yearFilter)
+      }
+      if (gradeFilter) {
+        params.append('grade', gradeFilter)
       }
       const response = await api.get(`/students/?${params.toString()}`)
       return response.data
@@ -320,6 +324,29 @@ export default function Payments() {
             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-base font-semibold sm:text-lg">Student Payment Tracking</h2>
               <div className="flex items-center gap-2">
+                <select
+                  value={gradeFilter}
+                  onChange={(e) => {
+                    setGradeFilter(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                >
+                  <option value="">All Grades</option>
+                  <option value="R">Grade R</option>
+                  <option value="1">Grade 1</option>
+                  <option value="2">Grade 2</option>
+                  <option value="3">Grade 3</option>
+                  <option value="4">Grade 4</option>
+                  <option value="5">Grade 5</option>
+                  <option value="6">Grade 6</option>
+                  <option value="7">Grade 7</option>
+                  <option value="8">Grade 8</option>
+                  <option value="9">Grade 9</option>
+                  <option value="10">Grade 10</option>
+                  <option value="11">Grade 11</option>
+                  <option value="12">Grade 12</option>
+                </select>
                 <select
                   value={yearFilter}
                   onChange={(e) => {
