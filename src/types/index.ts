@@ -90,6 +90,8 @@ export interface Student {
   balance_due: number
   months_paid: number
   is_active: boolean
+  is_archived?: boolean
+  grade?: string
 }
 
 export interface Payment {
