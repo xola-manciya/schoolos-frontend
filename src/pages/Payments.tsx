@@ -34,6 +34,13 @@ type BankStatement = {
   uploaded_by_name: string
 }
 
+type UnmatchedTransaction = {
+  date: string
+  amount: number
+  description: string
+  reference: string
+}
+
 export default function Payments() {
   const { user } = useAuthStore()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -48,6 +55,8 @@ export default function Payments() {
   const [pageSize, setPageSize] = useState(20)
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString())
   const [gradeFilter, setGradeFilter] = useState<string>('')
+  const [unmatchedTransactions, setUnmatchedTransactions] = useState<UnmatchedTransaction[]>([])
+  const [showUnmatchedBanner, setShowUnmatchedBanner] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: payments, isLoading } = useQuery<Payment[]>({
@@ -105,13 +114,25 @@ export default function Payments() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       
-      // Process the statement
-      await api.post(`/payments/statements/${uploadResponse.data.id}/process/`)
+      // Process the statement and return the result
+      const processResponse = await api.post(`/payments/statements/${uploadResponse.data.id}/process/`)
+      return processResponse.data
     },
-    onSuccess: () => {
-      toast.success('Bank statement processed successfully!')
+    onSuccess: (data) => {
+      toast.success(`Bank statement processed! Matched: ${data.matched}, Unmatched: ${data.unmatched}`)
+      
+      // Store unmatched transactions if any
+      if (data.unmatched_transactions && data.unmatched_transactions.length > 0) {
+        setUnmatchedTransactions(data.unmatched_transactions)
+        setShowUnmatchedBanner(true)
+      } else {
+        setUnmatchedTransactions([])
+        setShowUnmatchedBanner(false)
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['bank-statements'] })
       setSelectedFile(null)
     },
     onError: (error: unknown) => {
@@ -122,10 +143,21 @@ export default function Payments() {
 
   const reprocessMutation = useMutation({
     mutationFn: async (statementId: number) => {
-      await api.post(`/payments/statements/${statementId}/reprocess/`)
+      const response = await api.post(`/payments/statements/${statementId}/reprocess/`)
+      return response.data
     },
-    onSuccess: () => {
-      toast.success('Bank statement reprocessed successfully!')
+    onSuccess: (data) => {
+      toast.success(`Bank statement reprocessed! Matched: ${data.matched}, Unmatched: ${data.unmatched}`)
+      
+      // Store unmatched transactions if any
+      if (data.unmatched_transactions && data.unmatched_transactions.length > 0) {
+        setUnmatchedTransactions(data.unmatched_transactions)
+        setShowUnmatchedBanner(true)
+      } else {
+        setUnmatchedTransactions([])
+        setShowUnmatchedBanner(false)
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       queryClient.invalidateQueries({ queryKey: ['students'] })
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] })
@@ -351,6 +383,76 @@ export default function Payments() {
           </button>
         </div>
       </div>
+
+      {/* Unmatched Transactions Banner */}
+      {showUnmatchedBanner && unmatchedTransactions.length > 0 && (
+        <div className="mb-6 rounded-lg border-2 border-orange-200 bg-orange-50 p-4 shadow-sm sm:p-6">
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-orange-900 sm:text-lg">
+                Manual Review Required
+              </h2>
+              <p className="mt-1 text-sm text-orange-700">
+                {unmatchedTransactions.length} transaction{unmatchedTransactions.length > 1 ? 's' : ''} could not be automatically matched to students.
+                Please review and assign manually.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowUnmatchedBanner(false)}
+              className="text-orange-500 hover:text-orange-700"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-orange-200">
+              <thead className="bg-orange-100">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-orange-900">
+                    Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-orange-900">
+                    Amount
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-orange-900">
+                    Description
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-orange-900">
+                    Reference
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-orange-200 bg-white">
+                {unmatchedTransactions.map((transaction, index) => (
+                  <tr key={index} className="hover:bg-orange-50">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                      {transaction.date ? new Date(transaction.date).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                      R{transaction.amount.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {transaction.description}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {transaction.reference || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 rounded-md bg-orange-100 p-3">
+            <p className="text-xs text-orange-800">
+              <strong>Tip:</strong> To improve matching, ask parents to include the student's ID number or full name in payment references.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Student Payment Tracking */}
       <>
