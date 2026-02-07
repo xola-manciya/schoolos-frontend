@@ -14,11 +14,12 @@ export default function ClerkDashboard() {
     queryKey: ['clerk-stats'],
     queryFn: async () => {
       const [studentsRes, paymentsRes] = await Promise.all([
-        api.get('/students/'),
+        api.get('/students/payment_summary/'),
         api.get('/payments/list/')
       ])
       
-      const students = studentsRes.data.results || studentsRes.data
+      const students = studentsRes.data.students || []
+      const summary = studentsRes.data.summary
       const payments = paymentsRes.data.results || paymentsRes.data
       
       const today = new Date().toISOString().split('T')[0]
@@ -27,7 +28,7 @@ export default function ClerkDashboard() {
       )
       
       return {
-        total_students: students.length,
+        total_students: summary?.total_students || 0,
         pending_payments: students.filter((s: any) => s.payment_status !== 'PAID').length,
         todays_payments: todaysPayments.length,
         recent_payments: payments.slice(0, 10)
