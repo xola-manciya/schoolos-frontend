@@ -120,6 +120,22 @@ export default function Payments() {
     },
   })
 
+  const reprocessMutation = useMutation({
+    mutationFn: async (statementId: number) => {
+      await api.post(`/payments/statements/${statementId}/reprocess/`)
+    },
+    onSuccess: () => {
+      toast.success('Bank statement reprocessed successfully!')
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['bank-statements'] })
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string } } }
+      toast.error(err.response?.data?.error || 'Failed to reprocess statement')
+    },
+  })
+
   const markPaymentMutation = useMutation({
     mutationFn: async ({ studentId, amount, month, year }: { studentId: number; amount: number; month: string; year: number }) => {
       // Create payment date for the specific month (use 15th of the month)
@@ -675,15 +691,28 @@ export default function Payments() {
                           <span className="text-gray-500">Uploaded by:</span>
                           <span className="text-gray-900">{statement.uploaded_by_name}</span>
                         </div>
-                        <div className="flex justify-end pt-2">
+                        <div className="flex gap-2 pt-2">
                           <a
                             href={statement.file_url}
                             download={statement.filename}
-                            className="inline-flex items-center gap-1 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
                           >
                             <ArrowDownTrayIcon className="h-4 w-4" />
                             Download
                           </a>
+                          {statement.status === 'PROCESSED' && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Reprocess this statement? Old payments will be deleted and recreated.')) {
+                                  reprocessMutation.mutate(statement.id)
+                                }
+                              }}
+                              disabled={reprocessMutation.isPending}
+                              className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+                            >
+                              {reprocessMutation.isPending ? 'Processing...' : 'Reprocess'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -747,14 +776,29 @@ export default function Payments() {
                               </span>
                             </td>
                             <td className="whitespace-nowrap px-6 py-4 text-sm">
-                              <a
-                                href={statement.file_url}
-                                download={statement.filename}
-                                className="inline-flex items-center gap-1 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-                              >
-                                <ArrowDownTrayIcon className="h-4 w-4" />
-                                Download
-                              </a>
+                              <div className="flex gap-2">
+                                <a
+                                  href={statement.file_url}
+                                  download={statement.filename}
+                                  className="inline-flex items-center gap-1 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                                >
+                                  <ArrowDownTrayIcon className="h-4 w-4" />
+                                  Download
+                                </a>
+                                {statement.status === 'PROCESSED' && (
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm('Reprocess this statement? Old payments will be deleted and recreated.')) {
+                                        reprocessMutation.mutate(statement.id)
+                                      }
+                                    }}
+                                    disabled={reprocessMutation.isPending}
+                                    className="inline-flex items-center gap-1 rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+                                  >
+                                    {reprocessMutation.isPending ? 'Processing...' : 'Reprocess'}
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
