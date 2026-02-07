@@ -136,6 +136,25 @@ export default function Payments() {
     },
   })
 
+  const fixStuckStatementsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/payments/statements/fix_stuck_statements/')
+      return response.data
+    },
+    onSuccess: (data) => {
+      if (data.count > 0) {
+        toast.success(`Fixed ${data.count} stuck statement${data.count > 1 ? 's' : ''}!`)
+      } else {
+        toast.success('No stuck statements found - all clear!')
+      }
+      queryClient.invalidateQueries({ queryKey: ['bank-statements'] })
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string } } }
+      toast.error(err.response?.data?.error || 'Failed to fix stuck statements')
+    },
+  })
+
   const markPaymentMutation = useMutation({
     mutationFn: async ({ studentId, amount, month, year }: { studentId: number; amount: number; month: string; year: number }) => {
       // Create payment date for the specific month (use 15th of the month)
@@ -655,7 +674,18 @@ export default function Payments() {
 
           {/* Uploaded Statements */}
           <div className="rounded-lg bg-white p-4 shadow sm:p-6">
-            <h2 className="mb-4 text-base font-semibold sm:text-lg">Uploaded Bank Statements</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold sm:text-lg">Uploaded Bank Statements</h2>
+              {(user?.role === 'ADMIN' || user?.role === 'PRINCIPAL') && (
+                <button
+                  onClick={() => fixStuckStatementsMutation.mutate()}
+                  disabled={fixStuckStatementsMutation.isPending}
+                  className="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-500 disabled:bg-gray-400"
+                >
+                  {fixStuckStatementsMutation.isPending ? 'Fixing...' : 'Fix Stuck'}
+                </button>
+              )}
+            </div>
             
             {bankStatements && bankStatements.length > 0 ? (
               <>
