@@ -51,6 +51,7 @@ export default function Payments() {
   const [showBreakdownSidebar, setShowBreakdownSidebar] = useState(false)
   const [breakdownStudentId, setBreakdownStudentId] = useState<number | null>(null)
   const [deleteAllConfirm, setDeleteAllConfirm] = useState<{ id: number; name: string } | null>(null)
+  const [reprocessConfirm, setReprocessConfirm] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString())
@@ -834,11 +835,7 @@ export default function Payments() {
                           </a>
                           {statement.status === 'PROCESSED' && (
                             <button
-                              onClick={() => {
-                                if (window.confirm('Reprocess this statement? Old payments will be deleted and recreated.')) {
-                                  reprocessMutation.mutate(statement.id)
-                                }
-                              }}
+                              onClick={() => setReprocessConfirm(statement.id)}
                               disabled={reprocessMutation.isPending}
                               className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50"
                             >
@@ -919,11 +916,7 @@ export default function Payments() {
                                 </a>
                                 {statement.status === 'PROCESSED' && (
                                   <button
-                                    onClick={() => {
-                                      if (window.confirm('Reprocess this statement? Old payments will be deleted and recreated.')) {
-                                        reprocessMutation.mutate(statement.id)
-                                      }
-                                    }}
+                                    onClick={() => setReprocessConfirm(statement.id)}
                                     disabled={reprocessMutation.isPending}
                                     className="inline-flex items-center gap-1 rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50"
                                   >
@@ -1155,6 +1148,45 @@ export default function Payments() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Reprocess Statement Confirmation Dialog */}
+      {reprocessConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                  <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Reprocess Bank Statement</h3>
+                <p className="text-sm text-gray-500 mt-1">Are you sure you want to reprocess this statement? Old payments will be <span className="font-semibold">deleted and recreated</span>.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() => setReprocessConfirm(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  reprocessMutation.mutate(reprocessConfirm)
+                  setReprocessConfirm(null)
+                }}
+                disabled={reprocessMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700 disabled:opacity-50"
+              >
+                {reprocessMutation.isPending ? 'Processing...' : 'Reprocess Statement'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete All Payments Confirmation Dialog */}

@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline'
 import api from '../lib/api'
 import { ExportButton } from '../components/ExportButton'
+import toast from 'react-hot-toast'
 
 interface SchoolPicture {
   id: number
@@ -79,7 +80,7 @@ export default function SchoolPictures() {
       queryClient.invalidateQueries({ queryKey: ['school-pictures'] })
     } catch (error) {
       console.error('Upload failed:', error)
-      alert('Failed to upload images. Please try again.')
+      toast.error('Failed to upload images. Please try again.')
     } finally {
       setUploading(false)
       setUploadProgress(0)
