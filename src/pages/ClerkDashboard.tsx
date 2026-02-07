@@ -13,8 +13,10 @@ export default function ClerkDashboard() {
   const { data: stats } = useQuery<ClerkStats>({
     queryKey: ['clerk-stats'],
     queryFn: async () => {
+      // Filter by current year to match Students and Payments page behavior
+      const currentYear = new Date().getFullYear()
       const [studentsRes, paymentsRes] = await Promise.all([
-        api.get('/students/payment_summary/'),
+        api.get(`/students/payment_summary/?year=${currentYear}`),
         api.get('/payments/list/')
       ])
       
