@@ -1090,6 +1090,34 @@ export default function Payments() {
                       </div>
                     </div>
 
+                    {/* Registration Fee Status */}
+                    {student.registration_fee && student.registration_fee > 0 && (
+                      <div className={`p-4 rounded-lg mb-6 border-2 ${
+                        student.registration_fee_paid
+                          ? 'bg-green-50 border-green-200'
+                          : 'bg-yellow-50 border-yellow-200'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Registration Fee</p>
+                            <p className="text-2xl font-bold text-gray-900">R{(student.registration_fee || 0).toLocaleString()}</p>
+                          </div>
+                          <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                            student.registration_fee_paid
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {student.registration_fee_paid ? '✓ Paid' : 'Pending'}
+                          </div>
+                        </div>
+                        {!student.registration_fee_paid && (
+                          <p className="text-xs text-gray-600 mt-2">
+                            One-time fee will be auto-detected when exact amount is paid
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Monthly Breakdown */}
                     <div>
                       <h3 className="text-sm font-semibold text-gray-700 mb-3">Monthly Breakdown</h3>

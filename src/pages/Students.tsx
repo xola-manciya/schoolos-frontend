@@ -30,6 +30,7 @@ type StudentForm = {
   enrollment_date: string
   total_fees: number
   expected_monthly_payment: number
+  registration_fee?: number
 }
 
 type PaginatedResponse = {
@@ -183,6 +184,7 @@ export default function Students() {
             enrollment_date: student.enrollment_date || '',
             total_fees: student.total_fees || 0,
             expected_monthly_payment: student.expected_monthly_payment || 0,
+            registration_fee: student.registration_fee || 0,
             grade: student.grade || '',
             class_enrolled: student.class_enrolled?.id
           })
@@ -1154,6 +1156,17 @@ export default function Students() {
                       className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
                       placeholder="Expected payment per month"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Registration Fee (R) <span className="text-gray-500 text-xs">(optional)</span></label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      {...register('registration_fee', { valueAsNumber: true })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
+                      placeholder="One-time registration/admin fee"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">One-time fee that will be auto-detected when exact amount is paid</p>
                   </div>
                 </div>
 

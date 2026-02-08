@@ -87,6 +87,8 @@ export interface Student {
   total_fees: number
   amount_paid: number
   expected_monthly_payment: number
+  registration_fee?: number
+  registration_fee_paid?: boolean
   balance_due: number
   months_paid: number
   is_active: boolean
@@ -108,6 +110,7 @@ export interface Payment {
   match_type: 'STUDENT_ID' | 'NAME_MATCH' | 'FUZZY_MATCH' | 'REFERENCE' | 'MANUAL'
   match_confidence: number
   status: 'PENDING' | 'VERIFIED' | 'REVERSED'
+  is_registration_fee?: boolean
   bank_statement_file?: string
   bank_statement_filename?: string
 }
