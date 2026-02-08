@@ -109,7 +109,16 @@ export default function Payments() {
     mutationFn: async (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('file_type', file.name.endsWith('.pdf') ? 'PDF' : 'CSV')
+      
+      // Detect file type from extension
+      const fileName = file.name.toLowerCase()
+      let fileType = 'CSV' // default
+      if (fileName.endsWith('.pdf')) {
+        fileType = 'PDF'
+      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        fileType = 'EXCEL'
+      }
+      formData.append('file_type', fileType)
       
       const uploadResponse = await api.post('/payments/statements/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
