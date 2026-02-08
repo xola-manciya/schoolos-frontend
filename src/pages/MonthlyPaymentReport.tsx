@@ -16,6 +16,8 @@ interface StudentPaymentInfo {
   balance_due: string
   payment_status: string
   total_paid?: string
+  registration_fee?: string
+  registration_fee_paid?: boolean
 }
 
 interface PaymentSummary {
@@ -34,7 +36,7 @@ export default function MonthlyPaymentReport() {
   
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [selectedYear, setSelectedYear] = useState(currentYear)
-  const [activeTab, setActiveTab] = useState<'paid' | 'unpaid'>('unpaid')
+  const [activeTab, setActiveTab] = useState<'paid' | 'unpaid' | 'registration'>('unpaid')
   const [gradeFilter, setGradeFilter] = useState<string>('')
 
   // Fetch unpaid students (defaulters)
@@ -69,6 +71,19 @@ export default function MonthlyPaymentReport() {
     }
   })
 
+  // Fetch students who have paid registration fee
+  const { data: registrationFeePaid, isLoading: loadingRegistration } = useQuery<StudentPaymentInfo[]>({
+    queryKey: ['registration-fee-paid', gradeFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (gradeFilter) {
+        params.append('grade', gradeFilter)
+      }
+      const response = await api.get(`/students/registration_fee_paid/?${params.toString()}`)
+      return response.data.students || []
+    }
+  })
+
   const months = [
     { value: 1, label: 'January' },
     { value: 2, label: 'February' },
@@ -92,9 +107,10 @@ export default function MonthlyPaymentReport() {
     ? months.filter(m => m.value <= currentMonth)
     : months
 
-  const isLoading = loadingDefaulters || loadingHistory
+  const isLoading = loadingDefaulters || loadingHistory || loadingRegistration
   const paidStudents = paymentHistory?.payments || []
   const unpaidStudents = defaulters || []
+  const registrationStudents = registrationFeePaid || []
 
   return (
     <div className="p-6">
@@ -247,6 +263,16 @@ export default function MonthlyPaymentReport() {
             >
               Paid Students ({paidStudents.length})
             </button>
+            <button
+              onClick={() => setActiveTab('registration')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'registration'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Registration Fees ({registrationStudents.length})
+            </button>
           </nav>
         </div>
 
@@ -361,6 +387,68 @@ export default function MonthlyPaymentReport() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'registration' && (
+                <div>
+                  {registrationStudents.length === 0 ? (
+                    <div className="text-center py-12">
+                      <XCircleIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-lg font-medium text-gray-900">No registration fees paid</p>
+                      <p className="text-gray-500">No students have paid registration fees yet.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          Showing only students who have paid their registration fee.
+                          Total collected: <span className="font-semibold">R{registrationStudents.reduce((sum, s) => sum + parseFloat(s.registration_fee || '0'), 0).toLocaleString()}</span>
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Grade
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Registration Fee
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {registrationStudents.map((student) => (
+                              <tr key={student.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {student.student_name || `${student.first_name} ${student.last_name}`}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {student.grade || 'N/A'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                                  R{parseFloat(student.registration_fee || '0').toLocaleString()}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <CheckCircleIcon className="h-4 w-4" />
+                                    Paid
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
