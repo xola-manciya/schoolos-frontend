@@ -16,6 +16,8 @@ interface StudentPaymentInfo {
   balance_due: string
   payment_status: string
   total_paid?: string
+  expected_amount?: string
+  shortfall?: string
   registration_fee?: string
   registration_fee_paid?: boolean
 }
@@ -36,7 +38,7 @@ export default function MonthlyPaymentReport() {
   
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [selectedYear, setSelectedYear] = useState(currentYear)
-  const [activeTab, setActiveTab] = useState<'paid' | 'unpaid' | 'registration'>('unpaid')
+  const [activeTab, setActiveTab] = useState<'paid' | 'unpaid' | 'partial' | 'registration'>('unpaid')
   const [gradeFilter, setGradeFilter] = useState<string>('')
 
   // Fetch unpaid students (defaulters)
@@ -84,6 +86,22 @@ export default function MonthlyPaymentReport() {
     }
   })
 
+  // Fetch students with partial payments
+  const { data: partialPayments, isLoading: loadingPartial } = useQuery<StudentPaymentInfo[]>({
+    queryKey: ['partial-payments', selectedMonth, selectedYear, gradeFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        month: selectedMonth.toString(),
+        year: selectedYear.toString(),
+      })
+      if (gradeFilter) {
+        params.append('grade', gradeFilter)
+      }
+      const response = await api.get(`/students/partial_payments/?${params.toString()}`)
+      return response.data.students || []
+    }
+  })
+
   const months = [
     { value: 1, label: 'January' },
     { value: 2, label: 'February' },
@@ -107,9 +125,10 @@ export default function MonthlyPaymentReport() {
     ? months.filter(m => m.value <= currentMonth)
     : months
 
-  const isLoading = loadingDefaulters || loadingHistory || loadingRegistration
+  const isLoading = loadingDefaulters || loadingHistory || loadingRegistration || loadingPartial
   const paidStudents = paymentHistory?.payments || []
   const unpaidStudents = defaulters || []
+  const partialPaymentStudents = partialPayments || []
   const registrationStudents = registrationFeePaid || []
 
   return (
@@ -197,7 +216,7 @@ export default function MonthlyPaymentReport() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -224,6 +243,18 @@ export default function MonthlyPaymentReport() {
               Total: R{parseFloat(paymentHistory.total_amount_collected).toLocaleString()}
             </p>
           )}
+        </div>
+
+        <div className="bg-yellow-50 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-yellow-600">Partial Payments</p>
+              <p className="text-2xl font-bold text-yellow-700">
+                {isLoading ? '...' : partialPaymentStudents.length}
+              </p>
+            </div>
+            <XCircleIcon className="h-10 w-10 text-yellow-500" />
+          </div>
         </div>
 
         <div className="bg-red-50 rounded-lg shadow p-6">
@@ -262,6 +293,16 @@ export default function MonthlyPaymentReport() {
               }`}
             >
               Paid Students ({paidStudents.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('partial')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'partial'
+                  ? 'border-yellow-500 text-yellow-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Partial Payments ({partialPaymentStudents.length})
             </button>
             <button
               onClick={() => setActiveTab('registration')}
@@ -387,6 +428,71 @@ export default function MonthlyPaymentReport() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'partial' && (
+                <div>
+                  {partialPaymentStudents.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                      <p className="text-lg font-medium text-gray-900">No partial payments</p>
+                      <p className="text-gray-500">All students either paid in full or haven't paid at all.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="mb-4 p-4 bg-yellow-50 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          Showing students who made partial payments for this month.
+                          These students have paid some amount but not the full expected fee.
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Grade
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Paid
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Expected
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Shortfall
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {partialPaymentStudents.map((student: any) => (
+                              <tr key={student.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {student.student_name || `${student.first_name} ${student.last_name}`}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {student.grade || 'N/A'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-yellow-600">
+                                  R{parseFloat(student.total_paid || '0').toLocaleString()}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  R{parseFloat(student.expected_amount || '0').toLocaleString()}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
+                                  R{parseFloat(student.shortfall || '0').toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
