@@ -58,6 +58,8 @@ export default function Payments() {
   const [gradeFilter, setGradeFilter] = useState<string>('')
   const [unmatchedTransactions, setUnmatchedTransactions] = useState<UnmatchedTransaction[]>([])
   const [showUnmatchedBanner, setShowUnmatchedBanner] = useState(false)
+  const [studentsMarkedPaid, setStudentsMarkedPaid] = useState<any[]>([])
+  const [showPaidBanner, setShowPaidBanner] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: payments, isLoading } = useQuery<Payment[]>({
@@ -129,7 +131,21 @@ export default function Payments() {
       return processResponse.data
     },
     onSuccess: (data) => {
-      toast.success(`Bank statement processed! Matched: ${data.matched}, Unmatched: ${data.unmatched}`)
+      // Build success message with duplicate count
+      let message = `Bank statement processed! Matched: ${data.matched}, Unmatched: ${data.unmatched}`
+      if (data.duplicates > 0) {
+        message += `, Duplicates skipped: ${data.duplicates}`
+      }
+      toast.success(message)
+      
+      // Store students marked as paid if any
+      if (data.students_marked_paid && data.students_marked_paid.length > 0) {
+        setStudentsMarkedPaid(data.students_marked_paid)
+        setShowPaidBanner(true)
+      } else {
+        setStudentsMarkedPaid([])
+        setShowPaidBanner(false)
+      }
       
       // Store unmatched transactions if any
       if (data.unmatched_transactions && data.unmatched_transactions.length > 0) {
@@ -157,7 +173,21 @@ export default function Payments() {
       return response.data
     },
     onSuccess: (data) => {
-      toast.success(`Bank statement reprocessed! Matched: ${data.matched}, Unmatched: ${data.unmatched}`)
+      // Build success message with duplicate count
+      let message = `Bank statement reprocessed! Matched: ${data.matched}, Unmatched: ${data.unmatched}`
+      if (data.duplicates > 0) {
+        message += `, Duplicates skipped: ${data.duplicates}`
+      }
+      toast.success(message)
+      
+      // Store students marked as paid if any
+      if (data.students_marked_paid && data.students_marked_paid.length > 0) {
+        setStudentsMarkedPaid(data.students_marked_paid)
+        setShowPaidBanner(true)
+      } else {
+        setStudentsMarkedPaid([])
+        setShowPaidBanner(false)
+      }
       
       // Store unmatched transactions if any
       if (data.unmatched_transactions && data.unmatched_transactions.length > 0) {
@@ -393,6 +423,95 @@ export default function Payments() {
           </button>
         </div>
       </div>
+
+      {/* Students Marked as Paid Banner */}
+      {showPaidBanner && studentsMarkedPaid.length > 0 && (
+        <div className="mb-6 rounded-lg border-2 border-green-200 bg-green-50 p-4 shadow-sm sm:p-6">
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-green-900 sm:text-lg">
+                ✅ {studentsMarkedPaid.length} Student{studentsMarkedPaid.length > 1 ? 's' : ''} Marked as Paid
+              </h2>
+              <p className="mt-1 text-sm text-green-700">
+                The following students had payments automatically verified and their balances updated.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowPaidBanner(false)}
+              className="text-green-500 hover:text-green-700"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-green-200">
+              <thead className="bg-green-100">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-green-900">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-green-900">
+                    Total Paid
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-green-900">
+                    Total Fees
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-green-900">
+                    Balance
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-green-900">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-green-200 bg-white">
+                {studentsMarkedPaid.map((student, index) => (
+                  <tr key={index} className="hover:bg-green-50">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                      {student.full_name}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                      R{student.amount_paid?.toFixed(2) || '0.00'}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                      R{student.total_fees?.toFixed(2) || '0.00'}
+                    </td>
+                    <td className={`whitespace-nowrap px-4 py-3 text-sm font-medium ${
+                      student.balance < 0 
+                        ? 'text-red-600' 
+                        : student.balance === 0 
+                        ? 'text-green-600' 
+                        : 'text-yellow-600'
+                    }`}>
+                      R{student.balance?.toFixed(2) || '0.00'}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm">
+                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                        student.payment_status === 'PAID' 
+                          ? 'bg-green-100 text-green-800' 
+                          : student.payment_status === 'PARTIAL' 
+                          ? 'bg-yellow-100 text-yellow-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {student.payment_status || 'PENDING'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 rounded-md bg-green-100 p-3">
+            <p className="text-xs text-green-800">
+              <strong>✓ Success:</strong> These students' payment records have been automatically updated. Their balances reflect the new payments.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Unmatched Transactions Banner */}
       {showUnmatchedBanner && unmatchedTransactions.length > 0 && (
