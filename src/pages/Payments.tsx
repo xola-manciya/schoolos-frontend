@@ -126,8 +126,35 @@ export default function Payments() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       
-      // Process the statement and return the result
+      // Start processing (returns 202 immediately)
       const processResponse = await api.post(`/payments/statements/${uploadResponse.data.id}/process/`)
+      
+      // Poll for status if processing started in background
+      if (processResponse.status === 202) {
+        const statementId = uploadResponse.data.id
+        let attempts = 0
+        const maxAttempts = 120 // 10 minutes max (5s intervals)
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 5000)) // Wait 5 seconds
+          
+          const statusResponse = await api.get(`/payments/statements/${statementId}/processing-status/`)
+          const statusData = statusResponse.data
+          
+          if (statusData.complete) {
+            if (statusData.status === 'PROCESSED') {
+              return statusData // Success!
+            } else {
+              throw new Error(statusData.error || 'Processing failed')
+            }
+          }
+          
+          attempts++
+        }
+        
+        throw new Error('Processing timeout - please check the statement status manually')
+      }
+      
       return processResponse.data
     },
     onSuccess: (data) => {
