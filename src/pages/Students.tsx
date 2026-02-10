@@ -6,7 +6,7 @@ import { Student } from '../types'
 import toast from 'react-hot-toast'
 import { sanitizeText, sanitizeEmail, sanitizePhone } from '../lib/sanitize'
 import { ExportButton } from '../components/ExportButton'
-import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, ChevronUpIcon, ChevronDownIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { useDebounce } from '../hooks/useDebounce'
 import { useAuthStore } from '../store/authStore'
@@ -65,8 +65,10 @@ export default function Students() {
   const [importResults, setImportResults] = useState<{
     success_count: number
     error_count: number
+    updated_count?: number
     errors: string[]
     skipped_students: any[]
+    updated_students?: any[]
   } | null>(null)
 
   // Parse South African ID number to extract date of birth
@@ -264,31 +266,85 @@ export default function Students() {
     mutationFn: async (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      const response = await api.post('/students/bulk_import/', formData, {
+      
+      // Start upload (returns 202 immediately with upload_id)
+      const uploadResponse = await api.post('/students/bulk_upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      return response.data
+      
+      // If processing started in background (202), poll for status
+      if (uploadResponse.status === 202) {
+        const uploadId = uploadResponse.data.upload_id
+        let attempts = 0
+        const maxAttempts = 360  // 30 minutes max (5s intervals)
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 5000)) // Wait 5 seconds
+          
+          const statusResponse = await api.get(`/students/bulk_upload_status/?upload_id=${uploadId}`)
+          const statusData = statusResponse.data
+          
+          // Update progress toast
+          if (statusData.status === 'PROCESSING') {
+            const progress = statusData.progress || 0
+            const current = statusData.current || 0
+            const total = statusData.total || 0
+            toast.loading(
+              `Importing students: ${current}/${total} (${progress}%)`, 
+              { id: `upload-${uploadId}` }
+            )
+          }
+          
+          if (statusData.status === 'COMPLETED') {
+            toast.dismiss(`upload-${uploadId}`)
+            return statusData // Success!
+          } else if (statusData.status === 'FAILED') {
+            toast.dismiss(`upload-${uploadId}`)
+            throw new Error(statusData.error || 'Import failed')
+          }
+          
+          attempts++
+        }
+        
+        toast.dismiss(`upload-${uploadId}`)
+        throw new Error('Import timeout - please check status manually')
+      }
+      
+      // Synchronous response (old behavior, shouldn't happen with new code)
+      return uploadResponse.data
     },
     onSuccess: (data) => {
       // Store import results for display
       setImportResults(data)
       
       // Show success toast
-      const successMsg = data.success_count > 0 
-        ? `Successfully imported ${data.success_count} student${data.success_count !== 1 ? 's' : ''}!`
-        : 'No students were imported.'
-      
+      const successMsg = []
       if (data.success_count > 0) {
-        toast.success(successMsg)
+        successMsg.push(`${data.success_count} created`)
+      }
+      if (data.updated_count > 0) {
+        successMsg.push(`${data.updated_count} updated`)
+      }
+      if (data.error_count > 0) {
+        successMsg.push(`${data.error_count} errors`)
       }
       
-      // Don't show generic error toast, let the error banner handle it
+      const message = successMsg.length > 0 
+        ? `Import complete: ${successMsg.join(', ')}`
+        : 'Import completed with no changes'
+      
+      if (data.success_count > 0 || data.updated_count > 0) {
+        toast.success(message)
+      } else {
+        toast.info(message)
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['students'] })
       setExcelFile(null)
       setShowModal(false)
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to upload Excel file')
+      toast.error(error.response?.data?.error || error.message || 'Failed to upload Excel file')
     },
   })
 
@@ -435,19 +491,34 @@ export default function Students() {
       </div>
 
       {/* Import Results Banner */}
-      {importResults && (importResults.error_count > 0 || importResults.skipped_students?.length > 0) && (
-        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+      {importResults && (importResults.success_count > 0 || importResults.updated_count > 0 || importResults.error_count > 0 || importResults.skipped_students?.length > 0) && (
+        <div className={`mb-6 rounded-lg border p-4 ${
+          importResults.error_count > 0 
+            ? 'border-yellow-200 bg-yellow-50' 
+            : 'border-green-200 bg-green-50'
+        }`}>
           <div className="flex items-start">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
+              {importResults.error_count > 0 ? (
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <CheckCircleIcon className="h-5 w-5 text-green-400" />
+              )}
             </div>
             <div className="ml-3 flex-1">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Import Summary: {importResults.success_count || 0} imported, {importResults.skipped_students?.length || 0} skipped
+              <h3 className={`text-sm font-medium ${
+                importResults.error_count > 0 ? 'text-yellow-800' : 'text-green-800'
+              }`}>
+                Import Summary: 
+                {importResults.success_count > 0 && ` ${importResults.success_count} created`}
+                {importResults.updated_count > 0 && `, ${importResults.updated_count} updated`}
+                {importResults.skipped_students?.length > 0 && `, ${importResults.skipped_students.length} skipped`}
               </h3>
-              <div className="mt-2 text-sm text-yellow-700">
+              <div className={`mt-2 text-sm ${
+                importResults.error_count > 0 ? 'text-yellow-700' : 'text-green-700'
+              }`}>
                 {importResults.errors.some(err => err.includes('currently registered as a learner at')) && (
                   <div className="mb-3 rounded-md bg-yellow-100 p-3 border border-yellow-300">
                     <p className="font-semibold text-yellow-900 mb-1">⚠️ Some Students Are Already Enrolled Elsewhere</p>
@@ -458,6 +529,27 @@ export default function Students() {
                       <li>Ask them to archive or end the student's enrollment</li>
                       <li>Upload your file again after the transfer is complete</li>
                     </ol>
+                  </div>
+                )}
+                
+                {/* Show updated students (if any) */}
+                {importResults.updated_students && importResults.updated_students.length > 0 && (
+                  <div className="mt-3 rounded-md bg-blue-50 p-3 border border-blue-200">
+                    <p className="font-semibold text-blue-900 mb-2">
+                      ✓ {importResults.updated_students.length} student{importResults.updated_students.length !== 1 ? 's' : ''} updated:
+                    </p>
+                    <ul className="ml-4 text-xs space-y-1 text-blue-800">
+                      {importResults.updated_students.slice(0, 20).map((s: any, i: number) => (
+                        <li key={i}>
+                          <strong>{s.name}</strong> {s.id_number && `(ID: ${s.id_number})`}
+                        </li>
+                      ))}
+                      {importResults.updated_students.length > 20 && (
+                        <li className="text-blue-600 italic">
+                          ...and {importResults.updated_students.length - 20} more
+                        </li>
+                      )}
+                    </ul>
                   </div>
                 )}
                 
