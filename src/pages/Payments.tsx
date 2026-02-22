@@ -13,7 +13,7 @@ type MonthlyPayment = {
   month: string
   year: number
   paid: boolean
-  amount?: number
+  amount?: number | string  // Django DecimalField can be string
   payment_date?: string
 }
 

@@ -361,7 +361,7 @@ export default function Students() {
       if (data.success_count > 0 || data.updated_count > 0) {
         toast.success(message)
       } else {
-        toast.info(message)
+        toast(message)  // Use default toast instead of toast.info
       }
       
       queryClient.invalidateQueries({ queryKey: ['students'] })
@@ -637,7 +637,7 @@ export default function Students() {
       </div>
 
       {/* Import Results Banner */}
-      {importResults && (importResults.success_count > 0 || importResults.updated_count > 0 || importResults.error_count > 0 || importResults.skipped_students?.length > 0) && (
+      {importResults && (importResults.success_count > 0 || (importResults.updated_count ?? 0) > 0 || importResults.error_count > 0 || importResults.skipped_students?.length > 0) && (
         <div className={`mb-6 rounded-lg border p-4 ${
           importResults.error_count > 0 
             ? 'border-yellow-200 bg-yellow-50' 
@@ -659,7 +659,7 @@ export default function Students() {
               }`}>
                 Import Summary: 
                 {importResults.success_count > 0 && ` ${importResults.success_count} created`}
-                {importResults.updated_count > 0 && `, ${importResults.updated_count} updated`}
+                {(importResults.updated_count ?? 0) > 0 && `, ${importResults.updated_count} updated`}
                 {importResults.skipped_students?.length > 0 && `, ${importResults.skipped_students.length} skipped`}
               </h3>
               <div className={`mt-2 text-sm ${
