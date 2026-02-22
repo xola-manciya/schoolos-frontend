@@ -111,6 +111,7 @@ export interface Payment {
   match_confidence: number
   status: 'PENDING' | 'VERIFIED' | 'REVERSED'
   is_registration_fee?: boolean
+  transaction_description?: string
   bank_statement_file?: string
   bank_statement_filename?: string
 }

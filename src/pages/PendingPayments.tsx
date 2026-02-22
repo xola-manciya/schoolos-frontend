@@ -396,6 +396,18 @@ export default function PendingPayments() {
               Reassign Payment
             </h2>
 
+            {/* Bank Statement Information */}
+            {selectedPayment.transaction_description && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
+                  Bank Statement Description:
+                </div>
+                <div className="text-sm text-blue-900 dark:text-blue-100 font-mono whitespace-pre-wrap break-words">
+                  {selectedPayment.transaction_description}
+                </div>
+              </div>
+            )}
+
             <div className="mb-4">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Current Student: <span className="font-semibold">{selectedPayment.student_name || 'None'}</span>
@@ -403,8 +415,11 @@ export default function PendingPayments() {
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Amount: <span className="font-semibold">R{parseFloat(String(selectedPayment.amount) || '0').toFixed(2)}</span>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Date: <span className="font-semibold">{new Date(selectedPayment.payment_date).toLocaleDateString()}</span>
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Match Confidence: <span className="font-semibold">{selectedPayment.match_confidence}%</span>
               </div>
             </div>
 
