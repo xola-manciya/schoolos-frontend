@@ -15,7 +15,7 @@ type PaginatedPaymentsResponse = {
 
 export default function PendingPayments() {
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(20)
+  const [pageSize] = useState(50)  // Increased from 20 to show more payments per page
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [showReassignModal, setShowReassignModal] = useState(false)
@@ -96,6 +96,27 @@ export default function PendingPayments() {
     },
   })
 
+  // Bulk approve mutation
+  const bulkApproveMutation = useMutation({
+    mutationFn: async (paymentIds: number[]) => {
+      // Approve payments sequentially to avoid overwhelming the server
+      const results = await Promise.allSettled(
+        paymentIds.map(id => api.post(`/payments/list/${id}/verify/`, { verify: true }))
+      )
+      const succeeded = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
+      return { succeeded, failed, total: paymentIds.length }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['pending-payments'] })
+      toast.success(`Approved ${data.succeeded} of ${data.total} payments` + 
+        (data.failed > 0 ? ` (${data.failed} failed)` : ''))
+    },
+    onError: () => {
+      toast.error('Failed to approve payments')
+    },
+  })
+
   const handleVerify = (payment: Payment) => {
     const amount = parseFloat(String(payment.amount)).toFixed(2)
     if (confirm(`Verify payment of R${amount} from ${payment.student_name || 'Unknown'}?`)) {
@@ -128,6 +149,19 @@ export default function PendingPayments() {
     })
   }
 
+  const handleBulkApprove = () => {
+    const count = filteredPayments.length
+    if (count === 0) {
+      toast.error('No payments to approve')
+      return
+    }
+
+    if (confirm(`Approve all ${count} payment(s) on this page? This will update student balances.`)) {
+      const paymentIds = filteredPayments.map(p => p.id)
+      bulkApproveMutation.mutate(paymentIds)
+    }
+  }
+
   const payments = paymentsData?.results || []
   const totalPages = paymentsData ? Math.ceil(paymentsData.count / pageSize) : 1
 
@@ -148,35 +182,46 @@ export default function PendingPayments() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pending Payments</h1>
+        <h1 className="text-2xl font-bold text-gray-900 ">Pending Payments</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Review and approve payments from bank statement uploads
         </p>
       </div>
 
+      {/* Info Banner for Multiple Pages */}
+      {totalPages > 1 && (
+        <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Note:</strong> You have {paymentsData?.count} total pending payments across {totalPages} pages. 
+            The "Approve All" button only approves payments on the current page. 
+            Navigate through all pages to approve all payments.
+          </p>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Pending</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Pending (All Pages)</div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">{paymentsData?.count || 0}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Amount</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Amount (All Pages)</div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
             R{payments.reduce((sum, p) => sum + parseFloat(String(p.amount) || '0'), 0).toFixed(2)}
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Current Page</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Showing Page</div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {currentPage} of {totalPages}
           </div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative">
+      {/* Search Bar and Bulk Actions */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
           <MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
           <input
             type="text"
@@ -186,6 +231,15 @@ export default function PendingPayments() {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        {filteredPayments.length > 0 && (
+          <button
+            onClick={handleBulkApprove}
+            disabled={bulkApproveMutation.isPending}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            {bulkApproveMutation.isPending ? 'Approving...' : `Approve All (${filteredPayments.length})`}
+          </button>
+        )}
       </div>
 
       {/* Payments Table */}
