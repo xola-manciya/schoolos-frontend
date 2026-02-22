@@ -172,7 +172,7 @@ export default function Staff() {
       <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Staff Management</h1>
         <div className="flex gap-2">
-          <ExportButton endpoint="/staff/profiles/export/" />
+          <ExportButton endpoint="/staff/export/" />
           <button 
             onClick={() => setShowModal(true)}
             className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700 sm:text-base"

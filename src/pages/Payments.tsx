@@ -429,7 +429,7 @@ export default function Payments() {
     <div>
       <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Payments</h1>
-        <ExportButton endpoint="/payments/list/export/" />
+        <ExportButton endpoint="/payments/export/" />
       </div>
 
       <div className="mb-6 rounded-lg bg-white p-4 shadow sm:p-6">

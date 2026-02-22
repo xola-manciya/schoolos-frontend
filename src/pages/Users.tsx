@@ -198,7 +198,7 @@ export default function Users() {
           )}
         </div>
         <div className="flex gap-2">
-          <ExportButton endpoint="/staff/profiles/export" filename="users" />
+          <ExportButton endpoint="/staff/export/" filename="users" />
           <button
             onClick={handleAddUser}
             className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"

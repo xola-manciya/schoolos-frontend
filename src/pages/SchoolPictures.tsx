@@ -8,7 +8,6 @@ import {
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline'
 import api from '../lib/api'
-import { ExportButton } from '../components/ExportButton'
 import toast from 'react-hot-toast'
 
 interface SchoolPicture {
@@ -122,10 +121,6 @@ export default function SchoolPictures() {
           </p>
         </div>
         <div className="flex gap-3">
-          <ExportButton
-            endpoint="/general/school-pictures/export/"
-            filename="school-pictures"
-          />
           <label className="cursor-pointer rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
             <CloudArrowUpIcon className="mr-2 inline-block h-5 w-5" />
             Upload Pictures

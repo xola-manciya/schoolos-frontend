@@ -24,6 +24,11 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     
+    // If sending FormData, delete Content-Type to let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+    
     // Add CSRF token for non-GET requests (defense in depth)
     if (config.method && config.method.toLowerCase() !== 'get') {
       const csrfToken = document.cookie

@@ -59,6 +59,7 @@ export default function Students() {
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString())
   const [archiveFilter, setArchiveFilter] = useState<'active' | 'archived' | 'all'>('active')
   const [gradeFilter, setGradeFilter] = useState<string>('')
+  const [showExportMenu, setShowExportMenu] = useState(false)
   const debouncedSearch = useDebounce(searchQuery, 500)
   const queryClient = useQueryClient()
   const { register, handleSubmit, reset, setValue } = useForm<StudentForm>()
@@ -196,6 +197,31 @@ export default function Students() {
         } finally {
           setIsFormLoading(false)
         }
+      } else if (!editingStudent && showModal) {
+        // Adding new student - clear the form
+        reset({
+          student_id: '',
+          first_name: '',
+          last_name: '',
+          id_number: '',
+          date_of_birth: '',
+          gender: undefined,
+          email: '',
+          phone_number: '',
+          address: '',
+          parent_name: '',
+          parent_phone: '',
+          parent_email: '',
+          parent_id_number: '',
+          enrollment_date: '',
+          total_fees: 0,
+          expected_monthly_payment: 0,
+          registration_fee: 0,
+          grade: '',
+          class_enrolled: undefined
+        })
+        setExistingStudent(null)
+        setIsFormLoading(false)
       } else if (!showModal) {
         setIsFormLoading(false)
         setExistingStudent(null) // Clear when modal closes
@@ -268,9 +294,8 @@ export default function Students() {
       formData.append('file', file)
       
       // Start upload (returns 202 immediately with upload_id)
-      const uploadResponse = await api.post('/students/bulk_upload/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      // FormData will be detected in api interceptor and Content-Type will be auto-set
+      const uploadResponse = await api.post('/students/bulk_upload/', formData)
       
       // If processing started in background (202), poll for status
       if (uploadResponse.status === 202) {
@@ -419,6 +444,7 @@ export default function Students() {
 
   const handleEdit = (student: Student) => {
     setEditingStudent(student)
+    setUploadMode('single') // Always use single mode when editing
     setShowModal(true)
   }
 
@@ -469,14 +495,134 @@ export default function Students() {
       <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Students</h1>
         <div className="flex gap-2">
-          <ExportButton 
-            endpoint="/students/export/" 
-            filters={{
-              search: debouncedSearch,
-              year: yearFilter,
-              ordering: orderDirection === 'desc' ? `-${orderBy}` : orderBy
-            }}
-          />
+          {/* Export Dropdown Button */}
+          <div className="relative inline-block text-left">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export
+              <svg className={`h-4 w-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 z-20 mt-2 w-96 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="py-1">
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <h3 className="text-sm font-semibold text-gray-900">Export Options</h3>
+                      <p className="text-xs text-gray-500 mt-1">Choose an export format</p>
+                    </div>
+                    
+                    {/* All Students */}
+                    <div className="px-4 py-3 hover:bg-gray-50">
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-full bg-blue-100 p-2">
+                          <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-gray-900">All Students</div>
+                          <div className="text-xs text-gray-500 mt-0.5">Complete list with basic info and payment status</div>
+                          <div className="mt-2">
+                            <ExportButton 
+                              endpoint="/students/export/" 
+                              filters={{
+                                search: debouncedSearch,
+                                year: yearFilter,
+                                ordering: orderDirection === 'desc' ? `-${orderBy}` : orderBy
+                              }}
+                              filename="all_students"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-gray-200">
+                      <div className="px-4 py-2 bg-gray-50">
+                        <div className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Payment Reports</div>
+                      </div>
+                      
+                      {/* Registration Paid */}
+                      <div className="px-4 py-3 hover:bg-gray-50">
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-full bg-green-100 p-2">
+                            <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-sm text-gray-900">Registration Fee Paid</div>
+                            <div className="text-xs text-gray-500 mt-0.5">Students who have paid their registration fee</div>
+                            <div className="mt-2">
+                              <ExportButton 
+                                endpoint="/students/export_registration_paid/" 
+                                filters={{ grade: gradeFilter, year: yearFilter }}
+                                filename="registration_paid"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Partial Payments */}
+                      <div className="px-4 py-3 hover:bg-gray-50">
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-full bg-yellow-100 p-2">
+                            <svg className="h-4 w-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-sm text-gray-900">Partial Monthly Payments</div>
+                            <div className="text-xs text-gray-500 mt-0.5">Students with monthly payments (excludes registration-only)</div>
+                            <div className="mt-2">
+                              <ExportButton 
+                                endpoint="/students/export_partial_payments/" 
+                                filters={{ grade: gradeFilter }}
+                                filename="partial_payments"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Detailed Payments */}
+                      <div className="px-4 py-3 hover:bg-gray-50">
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-full bg-purple-100 p-2">
+                            <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 00-2-2m0 0h2a2 2 0 012 2v6a2 2 0 01-2 2h-2a2 2 0 01-2-2v-6z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-sm text-gray-900">Detailed Payment Breakdown</div>
+                            <div className="text-xs text-gray-500 mt-0.5">Month-by-month payment details (Jan–Dec columns)</div>
+                            <div className="mt-2">
+                              <ExportButton 
+                                endpoint="/students/export_payments_detailed/" 
+                                filters={{ grade: gradeFilter, year: yearFilter }}
+                                filename="payments_detailed"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          
           <button
             onClick={() => {
               reset()
@@ -1078,7 +1224,7 @@ export default function Students() {
               </div>
             )}
 
-            {uploadMode === 'excel' ? (
+            {uploadMode === 'excel' && !editingStudent ? (
               /* Excel Upload Mode */
               <div className="space-y-4">
                 <div className="rounded-lg bg-blue-50 p-4">
@@ -1088,6 +1234,7 @@ export default function Students() {
                     <li><strong>Required:</strong> Learner Surname, Learner First Name, ID Number, Birth Date, Gender</li>
                     <li><strong>Optional:</strong> Address, Email, Class/Grade, Cell Phone Number (parent)</li>
                     <li><strong>Parent Fields:</strong> Parent Name, Parent Email, Parent ID Number (all optional)</li>
+                    <li><strong>Financial Fields:</strong> Total Fees, Expected Monthly Payment, Registration Fee, Amount Paid (all optional)</li>
                     <li><strong>Date Format:</strong> YYYY/MM/DD or YYYY-MM-DD</li>
                     <li><strong>Gender:</strong> M/Male/1 for Male, F/Female/2 for Female</li>
                   </ul>
