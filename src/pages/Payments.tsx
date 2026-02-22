@@ -1206,7 +1206,7 @@ export default function Payments() {
 
                 const monthlyPayments = getMonthlyPayments(breakdownStudentId)
                 const paidPayments = monthlyPayments.filter(m => m.paid)
-                const totalPaid = paidPayments.reduce((sum, m) => sum + (m.amount || 0), 0)
+                const totalPaid = paidPayments.reduce((sum, m) => sum + parseFloat(String(m.amount || '0')), 0)
 
                 return (
                   <>
