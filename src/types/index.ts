@@ -101,7 +101,7 @@ export interface Payment {
   student?: number
   student_name?: string
   student_id?: string
-  amount: number
+  amount: number | string  // Django DecimalField serializes as string
   payment_date: string
   payment_month?: number
   payment_year?: number

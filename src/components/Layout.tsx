@@ -138,6 +138,7 @@ export default function Layout() {
         { name: 'Dashboard', href: '/app', icon: HomeIcon, featureKey: null },
         { name: 'Students', href: '/app/students', icon: UserGroupIcon, featureKey: 'students' },
         { name: 'Payments', href: '/app/payments', icon: BanknotesIcon, featureKey: 'payments' },
+        { name: 'Pending Payments', href: '/app/pending-payments', icon: ExclamationTriangleIcon, featureKey: 'payments' },
         { name: 'Payment Report', href: '/app/payment-report', icon: DocumentChartBarIcon, featureKey: null },
       ]
     }
@@ -148,6 +149,7 @@ export default function Layout() {
         { name: 'Dashboard', href: '/app', icon: HomeIcon, featureKey: null },
         { name: 'Students', href: '/app/students', icon: UserGroupIcon, featureKey: 'students' },
         { name: 'Payments', href: '/app/payments', icon: BanknotesIcon, featureKey: 'payments' },
+        { name: 'Pending Payments', href: '/app/pending-payments', icon: ExclamationTriangleIcon, featureKey: 'payments' },
         { name: 'Payment Report', href: '/app/payment-report', icon: DocumentChartBarIcon, featureKey: null },
       ]
     }
@@ -158,6 +160,7 @@ export default function Layout() {
         { name: 'Dashboard', href: '/app', icon: HomeIcon, featureKey: null },
         { name: 'Students', href: '/app/students', icon: UserGroupIcon, featureKey: 'students' },
         { name: 'Payments', href: '/app/payments', icon: BanknotesIcon, featureKey: 'payments' },
+        { name: 'Pending Payments', href: '/app/pending-payments', icon: ExclamationTriangleIcon, featureKey: 'payments' },
         { name: 'Payment Report', href: '/app/payment-report', icon: DocumentChartBarIcon, featureKey: null },
       ]
     }
@@ -168,6 +171,7 @@ export default function Layout() {
       { name: 'Students', href: '/app/students', icon: UserGroupIcon, featureKey: 'students' },
       { name: 'Staff', href: '/app/staff', icon: UsersIcon, featureKey: 'staff' },
       { name: 'Payments', href: '/app/payments', icon: BanknotesIcon, featureKey: 'payments' },
+      { name: 'Pending Payments', href: '/app/pending-payments', icon: ExclamationTriangleIcon, featureKey: 'payments' },
       { name: 'Payment Report', href: '/app/payment-report', icon: DocumentChartBarIcon, featureKey: null },
       { name: 'Pictures', href: '/app/pictures', icon: PhotoIcon, featureKey: 'school_pictures' },
     ]

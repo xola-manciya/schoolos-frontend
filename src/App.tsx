@@ -43,6 +43,7 @@ import AllSchools from './pages/AllSchools'
 import AllUsers from './pages/AllUsers'
 import FeatureFlags from './pages/FeatureFlags'
 import MonthlyPaymentReport from './pages/MonthlyPaymentReport'
+import PendingPayments from './pages/PendingPayments'
 
 function App() {
   const { isAuthenticated, user, fetchUser, logout } = useAuthStore()
@@ -208,6 +209,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'PAYMENT_PROCESSOR']} featureKey="payments">
                 <Payments />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="pending-payments" 
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PRINCIPAL', 'ACCOUNTANT', 'PAYMENT_PROCESSOR']} featureKey="payments">
+                <PendingPayments />
               </ProtectedRoute>
             } 
           />
