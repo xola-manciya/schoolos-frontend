@@ -45,9 +45,7 @@ export default function SchoolDetails() {
     e.preventDefault()
     setLoading(true)
 
-    // Debug: Check if tokens exist
     const accessToken = localStorage.getItem('access_token')
-    console.log('Access token exists:', !!accessToken)
     
     if (!accessToken) {
       toast.error('You must be logged in to complete registration')

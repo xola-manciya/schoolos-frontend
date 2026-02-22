@@ -27,6 +27,17 @@ interface PaymentSummary {
   total_amount_collected?: string
 }
 
+interface MonthlySummary {
+  month: number
+  year: number
+  total_students: number
+  filtered_total: number
+  paid_count: number
+  partial_count: number
+  unpaid_count: number
+  total_collected: number
+}
+
 interface PaymentHistoryResponse extends PaymentSummary {
   payments: StudentPaymentInfo[]
 }
@@ -104,6 +115,22 @@ export default function MonthlyPaymentReport() {
     }
   })
 
+  // Fetch monthly summary (total students and counts)
+  const { data: monthlySummary, isLoading: loadingSummary } = useQuery<MonthlySummary>({
+    queryKey: ['monthly-summary', selectedMonth, selectedYear, gradeFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        month: selectedMonth.toString(),
+        year: selectedYear.toString(),
+      })
+      if (gradeFilter) {
+        params.append('grade', gradeFilter)
+      }
+      const response = await api.get(`/students/monthly_summary/?${params.toString()}`)
+      return response.data
+    }
+  })
+
   const months = [
     { value: 1, label: 'January' },
     { value: 2, label: 'February' },
@@ -127,7 +154,7 @@ export default function MonthlyPaymentReport() {
     ? months.filter(m => m.value <= currentMonth)
     : months
 
-  const isLoading = loadingDefaulters || loadingHistory || loadingRegistration || loadingPartial
+  const isLoading = loadingDefaulters || loadingHistory || loadingRegistration || loadingPartial || loadingSummary
   const paidStudents = paymentHistory?.payments || []
   const unpaidStudents = defaulters || []
   const partialPaymentStudents = partialPayments || []
@@ -224,10 +251,15 @@ export default function MonthlyPaymentReport() {
             <div>
               <p className="text-sm text-gray-500">Total Students</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? '...' : paidStudents.length + unpaidStudents.length}
+                {isLoading ? '...' : gradeFilter ? monthlySummary?.filtered_total || 0 : monthlySummary?.total_students || 0}
               </p>
             </div>
           </div>
+          {gradeFilter && (
+            <p className="mt-2 text-xs text-gray-500">
+              Grade {gradeFilter} only
+            </p>
+          )}
         </div>
 
         <div className="bg-green-50 rounded-lg shadow p-6">
@@ -235,14 +267,14 @@ export default function MonthlyPaymentReport() {
             <div>
               <p className="text-sm text-green-600">Students Paid</p>
               <p className="text-2xl font-bold text-green-700">
-                {isLoading ? '...' : paidStudents.length}
+                {isLoading ? '...' : monthlySummary?.paid_count || 0}
               </p>
             </div>
             <CheckCircleIcon className="h-10 w-10 text-green-500" />
           </div>
-          {paymentHistory?.total_amount_collected && (
+          {monthlySummary?.total_collected !== undefined && (
             <p className="mt-2 text-sm text-green-600">
-              Total: R{parseFloat(paymentHistory.total_amount_collected).toLocaleString()}
+              Total: R{monthlySummary.total_collected.toLocaleString()}
             </p>
           )}
         </div>
@@ -252,7 +284,7 @@ export default function MonthlyPaymentReport() {
             <div>
               <p className="text-sm text-yellow-600">Partial Payments</p>
               <p className="text-2xl font-bold text-yellow-700">
-                {isLoading ? '...' : partialPaymentStudents.length}
+                {isLoading ? '...' : monthlySummary?.partial_count || 0}
               </p>
             </div>
             <XCircleIcon className="h-10 w-10 text-yellow-500" />
@@ -264,7 +296,7 @@ export default function MonthlyPaymentReport() {
             <div>
               <p className="text-sm text-red-600">Students Unpaid</p>
               <p className="text-2xl font-bold text-red-700">
-                {isLoading ? '...' : unpaidStudents.length}
+                {isLoading ? '...' : monthlySummary?.unpaid_count || 0}
               </p>
             </div>
             <XCircleIcon className="h-10 w-10 text-red-500" />
@@ -473,7 +505,7 @@ export default function MonthlyPaymentReport() {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {partialPaymentStudents.map((student: any) => (
+                            {partialPaymentStudents.map((student) => (
                               <tr key={student.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                   {student.student_name || `${student.first_name} ${student.last_name}`}
