@@ -9,7 +9,7 @@ import {
 
 export default function Dashboard() {
   const { data: stats } = useQuery({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats-v4'],  // v4: Force complete refresh for negative balance fix
     queryFn: async () => {
       // Filter by current year to match Students and Payments page behavior
       const currentYear = new Date().getFullYear()
@@ -24,6 +24,9 @@ export default function Dashboard() {
         registration: registrationRes.data.summary,
       }
     },
+    staleTime: 0,  // Always fetch fresh data
+    gcTime: 0,  // Don't cache at all
+    refetchOnMount: true,  // Always refetch when component mounts
   })
 
   const statCards = [

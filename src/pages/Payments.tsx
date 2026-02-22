@@ -71,7 +71,7 @@ export default function Payments() {
   })
 
   const { data: studentsData } = useQuery<PaginatedStudentsResponse>({
-    queryKey: ['students', currentPage, pageSize, yearFilter, gradeFilter],
+    queryKey: ['students-v2', currentPage, pageSize, yearFilter, gradeFilter],  // v2 to bust cache
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -122,45 +122,57 @@ export default function Payments() {
       }
       formData.append('file_type', fileType)
       
+      // Upload (returns 202 with upload_id immediately)
       const uploadResponse = await api.post('/payments/statements/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       
-      // Start processing (returns 202 immediately)
-      const processResponse = await api.post(`/payments/statements/${uploadResponse.data.id}/process/`)
-      
-      // Poll for status if processing started in background
-      if (processResponse.status === 202) {
-        const statementId = uploadResponse.data.id
+      // Check if async upload (202 status)
+      if (uploadResponse.status === 202) {
+        const uploadId = uploadResponse.data.upload_id
         let attempts = 0
-        const maxAttempts = 120 // 10 minutes max (5s intervals)
+        const maxAttempts = 360 // 30 minutes max (5s intervals)
         
         while (attempts < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, 5000)) // Wait 5 seconds
           
-          const statusResponse = await api.get(`/payments/statements/${statementId}/processing-status/`)
+          const statusResponse = await api.get(`/payments/statements/upload_status/?upload_id=${uploadId}`)
           const statusData = statusResponse.data
           
-          if (statusData.complete) {
-            if (statusData.status === 'PROCESSED') {
-              return statusData // Success!
-            } else {
-              throw new Error(statusData.error || 'Processing failed')
+          // Update progress toast if needed
+          if (statusData.status === 'UPLOADING' || statusData.status === 'PROCESSING') {
+            const progress = statusData.progress || 0
+            console.log(`Upload progress: ${progress}% (${statusData.message})`)
+          }
+          
+          // Check if complete
+          if (statusData.status === 'COMPLETED') {
+            return {
+              matched: statusData.matched || 0,
+              unmatched: statusData.unmatched || 0,
+              total: statusData.total || 0,
+              statement_id: statusData.statement_id
             }
+          } else if (statusData.status === 'FAILED') {
+            throw new Error(statusData.error || 'Upload/processing failed')
+          } else if (statusData.status === 'DUPLICATE') {
+            // Duplicate detected, will reprocess
+            console.log('Duplicate file detected, reprocessing...')
           }
           
           attempts++
         }
         
-        throw new Error('Processing timeout - please check the statement status manually')
+        throw new Error('Upload timeout - please check the statements page manually')
       }
       
-      return processResponse.data
+      // Fallback for synchronous response (shouldn't happen with new code)
+      return uploadResponse.data
     },
     onSuccess: (data) => {
-      // Build success message with duplicate count
+      // Build success message
       let message = `Bank statement processed! Matched: ${data.matched}, Unmatched: ${data.unmatched}`
-      if (data.duplicates > 0) {
+      if (data.duplicates && data.duplicates > 0) {
         message += `, Duplicates skipped: ${data.duplicates}`
       }
       toast.success(message)
@@ -184,7 +196,7 @@ export default function Payments() {
       }
       
       queryClient.invalidateQueries({ queryKey: ['payments'] })
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] })
       setSelectedFile(null)
     },
@@ -226,7 +238,7 @@ export default function Payments() {
       }
       
       queryClient.invalidateQueries({ queryKey: ['payments'] })
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] })
     },
     onError: (error: unknown) => {
@@ -277,7 +289,7 @@ export default function Payments() {
     onSuccess: () => {
       toast.success('Payment recorded successfully!')
       queryClient.invalidateQueries({ queryKey: ['payments'] })
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
       setShowPaymentModal(false)
       setSelectedMonth(null)
       setEditingStudentId(null)
@@ -297,7 +309,7 @@ export default function Payments() {
     onSuccess: () => {
       toast.success('Payment removed successfully!')
       queryClient.invalidateQueries({ queryKey: ['payments'] })
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
       queryClient.invalidateQueries({ queryKey: ['payment-defaulters'] })
       queryClient.invalidateQueries({ queryKey: ['payment-history'] })
     },
@@ -316,7 +328,7 @@ export default function Payments() {
     onSuccess: () => {
       toast.success('All student payments deleted successfully!')
       queryClient.invalidateQueries({ queryKey: ['payments'] })
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
       queryClient.invalidateQueries({ queryKey: ['payment-defaulters'] })
       queryClient.invalidateQueries({ queryKey: ['payment-history'] })
     },

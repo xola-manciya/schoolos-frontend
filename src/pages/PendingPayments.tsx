@@ -40,7 +40,7 @@ export default function PendingPayments() {
 
   // Fetch all students for reassignment dropdown
   const { data: allStudents } = useQuery<Student[]>({
-    queryKey: ['all-students'],
+    queryKey: ['all-students-v2'],  // v2 to bust cache
     queryFn: async () => {
       const response = await api.get('/students/?page_size=1000')
       return response.data.results || response.data

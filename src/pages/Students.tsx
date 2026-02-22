@@ -129,7 +129,7 @@ export default function Students() {
   }
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedResponse>({
-    queryKey: ['students', currentPage, pageSize, debouncedSearch, orderBy, orderDirection, yearFilter, archiveFilter, gradeFilter],
+    queryKey: ['students-v2', currentPage, pageSize, debouncedSearch, orderBy, orderDirection, yearFilter, archiveFilter, gradeFilter],  // v2 to bust cache
     queryFn: async () => {
       const ordering = orderDirection === 'desc' ? `-${orderBy}` : orderBy
       const params = new URLSearchParams({
@@ -256,7 +256,7 @@ export default function Students() {
     },
     onSuccess: () => {
       toast.success(editingStudent ? 'Student updated successfully!' : 'Student added successfully!')
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
       reset()
       setEditingStudent(null)
       setShowModal(false)
@@ -364,7 +364,7 @@ export default function Students() {
         toast(message)  // Use default toast instead of toast.info
       }
       
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
       setExcelFile(null)
       setShowModal(false)
     },
@@ -379,7 +379,7 @@ export default function Students() {
     },
     onSuccess: () => {
       toast.success('Student deleted successfully!')
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to delete student')
@@ -392,7 +392,7 @@ export default function Students() {
     },
     onSuccess: () => {
       toast.success('Student archived successfully!')
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
       setArchiveConfirm(null)
     },
     onError: (error: any) => {
@@ -406,7 +406,7 @@ export default function Students() {
     },
     onSuccess: () => {
       toast.success('Student unarchived successfully!')
-      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-v2'] })
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to unarchive student')

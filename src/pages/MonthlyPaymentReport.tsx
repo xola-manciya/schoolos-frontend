@@ -75,7 +75,7 @@ export default function MonthlyPaymentReport() {
 
   // Fetch students who have paid registration fee
   const { data: registrationFeePaid, isLoading: loadingRegistration } = useQuery<StudentPaymentInfo[]>({
-    queryKey: ['registration-fee-paid', gradeFilter],
+    queryKey: ['registration-fee-paid-v3', gradeFilter],  // v3: Force fresh data
     queryFn: async () => {
       const params = new URLSearchParams()
       if (gradeFilter) {
@@ -83,7 +83,9 @@ export default function MonthlyPaymentReport() {
       }
       const response = await api.get(`/students/registration_fee_paid/?${params.toString()}`)
       return response.data.students || []
-    }
+    },
+    staleTime: 0,
+    gcTime: 0,
   })
 
   // Fetch students with partial payments
@@ -503,15 +505,17 @@ export default function MonthlyPaymentReport() {
                   {registrationStudents.length === 0 ? (
                     <div className="text-center py-12">
                       <XCircleIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-lg font-medium text-gray-900">No registration fees paid</p>
-                      <p className="text-gray-500">No students have paid registration fees yet.</p>
+                      <p className="text-lg font-medium text-gray-900">No registration fees set</p>
+                      <p className="text-gray-500">No students have registration fees configured.</p>
                     </div>
                   ) : (
                     <div>
                       <div className="mb-4 p-4 bg-blue-50 rounded-lg">
                         <p className="text-sm text-blue-800">
-                          Showing only students who have paid their registration fee.
-                          Total collected: <span className="font-semibold">R{registrationStudents.reduce((sum, s) => sum + parseFloat(s.registration_fee || '0'), 0).toLocaleString()}</span>
+                          Showing all students with registration fees. 
+                          Expected: <span className="font-semibold">R{registrationStudents.reduce((sum, s) => sum + parseFloat(s.registration_fee || '0'), 0).toLocaleString()}</span>
+                          {' | '}
+                          Paid: <span className="font-semibold">{registrationStudents.filter(s => s.registration_fee_paid).length} students</span>
                         </p>
                       </div>
                       <div className="overflow-x-auto">
@@ -545,10 +549,17 @@ export default function MonthlyPaymentReport() {
                                   R{parseFloat(student.registration_fee || '0').toLocaleString()}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    <CheckCircleIcon className="h-4 w-4" />
-                                    Paid
-                                  </span>
+                                  {student.registration_fee_paid ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      <CheckCircleIcon className="h-4 w-4" />
+                                      Paid
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                      <ExclamationTriangleIcon className="h-4 w-4" />
+                                      Unpaid
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                             ))}
