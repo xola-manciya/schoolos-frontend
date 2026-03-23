@@ -21,6 +21,7 @@ import {
   BuildingOfficeIcon,
   FlagIcon,
   DocumentChartBarIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline'
 
 export default function Layout() {
@@ -281,7 +282,7 @@ export default function Layout() {
         </nav>
 
         <div className="absolute bottom-0 w-full border-t p-4">
-          {(user?.role === 'ADMIN' || user?.role === 'PRINCIPAL' || user?.role === 'HOD') && (
+          {(user?.role === 'ADMIN' || user?.role === 'PRINCIPAL' || user?.role === 'HOD') && isFeatureEnabled('billing') && (
             <Link
               to="/app/billing"
               onClick={() => setSidebarOpen(false)}
@@ -353,8 +354,8 @@ export default function Layout() {
           <VerificationBanner status={verificationStatus} schoolName={schoolName} />
         )}
 
-        {/* Grace Period Warning Banner - not shown for platform admins */}
-        {showGraceWarning && graceDaysRemaining > 0 && !isPlatformAdmin && (
+        {/* Grace Period Warning Banner - not shown for platform admins, only shown when billing is enabled */}
+        {showGraceWarning && graceDaysRemaining > 0 && !isPlatformAdmin && isFeatureEnabled('billing') && (
           <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4">
             <div className="flex items-start">
               <ExclamationTriangleIcon className="h-6 w-6 text-orange-500 mr-3 flex-shrink-0" />
@@ -384,12 +385,60 @@ export default function Layout() {
         )}
         
         <div className="p-4 sm:p-6 lg:p-8">
-          <Outlet />
+          {/* Block all content for non-approved schools (platform admins always bypass) */}
+          {!isPlatformAdmin && verificationStatus === 'PENDING' ? (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-10 max-w-lg w-full shadow-sm">
+                <ClockIcon className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-amber-900 mb-2">Awaiting Approval</h2>
+                <p className="text-amber-800 mb-4">
+                  Your school registration is currently under review by the platform administrator.
+                  All features will be unlocked once your school has been approved.
+                </p>
+                <p className="text-sm text-amber-700">
+                  This typically takes <strong>1–2 business days</strong>. You will receive an email notification when your school has been approved.
+                </p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link
+                    to="/app/school-settings"
+                    className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-700 transition-colors"
+                  >
+                    <BuildingOfficeIcon className="h-4 w-4" />
+                    View School Details
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : !isPlatformAdmin && verificationStatus === 'REJECTED' ? (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-10 max-w-lg w-full shadow-sm">
+                <ExclamationTriangleIcon className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-red-900 mb-2">Registration Rejected</h2>
+                <p className="text-red-800 mb-4">
+                  Your school registration could not be approved. This may be due to CIPC verification failure or incomplete information.
+                </p>
+                <p className="text-sm text-red-700">
+                  Please contact <strong>support@schoolos.co.za</strong> for assistance, or update your school details and resubmit.
+                </p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link
+                    to="/app/school-settings"
+                    className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                  >
+                    <BuildingOfficeIcon className="h-4 w-4" />
+                    Update School Details
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </div>
       </div>
 
-      {/* Post-Cancellation Dialog - Non-dismissable, shown globally, not for platform admins */}
-      {showCanceledDialog && !isPlatformAdmin && (
+      {/* Post-Cancellation Dialog - Non-dismissable, shown globally, not for platform admins, only when billing is enabled */}
+      {showCanceledDialog && !isPlatformAdmin && isFeatureEnabled('billing') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6">
