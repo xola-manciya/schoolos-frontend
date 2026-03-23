@@ -297,7 +297,7 @@ export default function FAQ() {
                 Email Support
               </a>
               <a
-                href="tel:+27111234567"
+                href="tel:+27736439458"
                 className="rounded-lg border-2 border-white px-6 py-3 font-semibold text-white hover:bg-white/10"
               >
                 Call Us

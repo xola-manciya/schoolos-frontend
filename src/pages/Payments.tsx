@@ -48,6 +48,7 @@ export default function Payments() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState<{ month: string; year: number } | null>(null)
   const [editingStudentId, setEditingStudentId] = useState<number | null>(null)
+  const [isRegistrationPayment, setIsRegistrationPayment] = useState(false)
   const [showBreakdownSidebar, setShowBreakdownSidebar] = useState(false)
   const [breakdownStudentId, setBreakdownStudentId] = useState<number | null>(null)
   const [deleteAllConfirm, setDeleteAllConfirm] = useState<{ id: number; name: string } | null>(null)
@@ -267,7 +268,7 @@ export default function Payments() {
   })
 
   const markPaymentMutation = useMutation({
-    mutationFn: async ({ studentId, amount, month, year }: { studentId: number; amount: number; month: string; year: number }) => {
+    mutationFn: async ({ studentId, amount, month, year, isRegistration }: { studentId: number; amount: number; month: string; year: number; isRegistration: boolean }) => {
       // Create payment date for the specific month (use 15th of the month)
       const monthIndex = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].indexOf(month)
       const paymentDate = new Date(year, monthIndex, 15)
@@ -284,6 +285,7 @@ export default function Payments() {
         match_confidence: 100,
         payment_month: monthIndex + 1,
         payment_year: sanitizeNumber(year),
+        is_registration_fee: isRegistration,
       })
     },
     onSuccess: () => {
@@ -293,6 +295,7 @@ export default function Payments() {
       setShowPaymentModal(false)
       setSelectedMonth(null)
       setEditingStudentId(null)
+      setIsRegistrationPayment(false)
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string; error?: string } } }
@@ -1132,12 +1135,44 @@ export default function Payments() {
                   studentId: selectedStudent, 
                   amount,
                   month: selectedMonth.month,
-                  year: selectedMonth.year
+                  year: selectedMonth.year,
+                  isRegistration: isRegistrationPayment
                 })
               } else {
                 toast.error('Please enter a valid amount')
               }
             }}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Type
+                </label>
+                <div className="flex gap-4 mb-1">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="paymentType"
+                      checked={!isRegistrationPayment}
+                      onChange={() => setIsRegistrationPayment(false)}
+                      className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">Normal Payment</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="paymentType"
+                      checked={isRegistrationPayment}
+                      onChange={() => setIsRegistrationPayment(true)}
+                      className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">Registration Fee</span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  {isRegistrationPayment ? 'This will mark the registration fee as paid' : 'Regular tuition payment'}
+                </p>
+              </div>
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Payment Amount (R)
@@ -1147,13 +1182,20 @@ export default function Payments() {
                   name="amount"
                   step="0.01"
                   min="0.01"
-                  defaultValue={(students?.find(s => s.id === selectedStudent)?.total_fees || 0) / (school?.payment_months_per_year || 12)}
+                  defaultValue={isRegistrationPayment 
+                    ? (students?.find(s => s.id === selectedStudent)?.registration_fee || 0)
+                    : (students?.find(s => s.id === selectedStudent)?.total_fees || 0) / (school?.payment_months_per_year || 12)
+                  }
+                  key={isRegistrationPayment ? 'registration' : 'normal'}
                   required
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none"
                   placeholder="Enter amount"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Monthly fee: R{((students?.find(s => s.id === selectedStudent)?.total_fees || 0) / (school?.payment_months_per_year || 12)).toFixed(2)}
+                  {isRegistrationPayment 
+                    ? `Registration fee: R${(students?.find(s => s.id === selectedStudent)?.registration_fee || 0).toFixed(2)}`
+                    : `Monthly fee: R${((students?.find(s => s.id === selectedStudent)?.total_fees || 0) / (school?.payment_months_per_year || 12)).toFixed(2)}`
+                  }
                 </p>
               </div>
 
@@ -1163,6 +1205,7 @@ export default function Payments() {
                   onClick={() => {
                     setShowPaymentModal(false)
                     setSelectedMonth(null)
+                    setIsRegistrationPayment(false)
                   }}
                   className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300"
                 >

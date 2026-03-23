@@ -379,7 +379,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-gray-600">
                 <li>Support: support@schoolos.co.za</li>
                 <li>Sales: sales@schoolos.co.za</li>
-                <li>Phone: +27 11 123 4567</li>
+                <li>Phone: +27 73 643 9458</li>
               </ul>
             </div>
           </div>

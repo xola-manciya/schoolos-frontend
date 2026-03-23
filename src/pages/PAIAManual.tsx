@@ -163,7 +163,7 @@ export default function PAIAManual() {
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2 text-gray-700">
                         <Phone className="w-5 h-5 text-primary-600" />
-                        <span>+27 (0)11 123 4567</span>
+                        <span>+27 73 643 9458</span>
                       </div>
                       <div className="flex items-center space-x-2 text-gray-700">
                         <Mail className="w-5 h-5 text-primary-600" />
@@ -192,7 +192,7 @@ export default function PAIAManual() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">Telephone</h3>
-                    <p className="text-gray-700">+27 (0)11 123 4567</p>
+                    <p className="text-gray-700">+27 736439458</p>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600 text-sm pt-2">
                     <Clock className="w-4 h-4" />
@@ -411,7 +411,7 @@ export default function PAIAManual() {
                   <Phone className="w-6 h-6" />
                   <div>
                     <p className="font-semibold">Phone</p>
-                    <p className="text-sm text-primary-100">+27 (0)11 123 4567</p>
+                    <p className="text-sm text-primary-100">+27 736439458</p>
                   </div>
                 </div>
               </div>
